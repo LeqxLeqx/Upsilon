@@ -18,22 +18,47 @@
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-package upsilon;
+package upsilon.types;
 
-public /*static*/ class Upsilon { private Upsilon() {}
-  
-  public static final int
-    MAJOR_VERSION = 0,
-    MINOR_VERSION = 1,
-    RELEASE_VERSION = 3;
+public class Tuple3<T0, T1, T2> extends Tuple {
 
-  public static String getVersion() {
-    return String.format(
-        "%d.%d.%d",
-        MAJOR_VERSION,
-        MINOR_VERSION,
-        RELEASE_VERSION
-        );
-  }
-  
+	public T0 value0;
+	public T1 value1;
+	public T2 value2;
+
+
+	public Tuple3() {
+		this.value0 = null;
+		this.value1 = null;
+		this.value2 = null;
+	}
+
+	public Tuple3(T0 value0, T1 value1, T2 value2) {
+		this.value0 = value0;
+		this.value1 = value1;
+		this.value2 = value2;
+
+	}
+
+
+	@Override
+	public int size() {
+		return 3;
+	}
+
+	@Override
+	public Object getImp(int index) {
+		switch (index) {
+			case 0:
+				return value0;
+			case 1:
+				return value1;
+			case 2:
+				return value2;
+			default:
+				throw new RuntimeException();
+		}
+	}
+
+	
 }

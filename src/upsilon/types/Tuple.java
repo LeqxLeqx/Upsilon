@@ -18,22 +18,23 @@
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-package upsilon;
+package upsilon.types;
 
-public /*static*/ class Upsilon { private Upsilon() {}
-  
-  public static final int
-    MAJOR_VERSION = 0,
-    MINOR_VERSION = 1,
-    RELEASE_VERSION = 3;
+public abstract class Tuple {
 
-  public static String getVersion() {
-    return String.format(
-        "%d.%d.%d",
-        MAJOR_VERSION,
-        MINOR_VERSION,
-        RELEASE_VERSION
-        );
-  }
-  
+	public abstract int size();
+	protected abstract Object getImp(int index);
+
+	public Object get(int index) {
+		if (index < 0 || index >= size())
+		  throw new IllegalArgumentException(String.format(
+							"index out of range for tuple: %d (size: %d)",
+							index,
+							size()
+							));
+
+		return getImp(index);
+	}
+	
+	
 }

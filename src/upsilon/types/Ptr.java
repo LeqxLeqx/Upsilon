@@ -18,22 +18,17 @@
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-package upsilon;
+package upsilon.types;
 
-public /*static*/ class Upsilon { private Upsilon() {}
-  
-  public static final int
-    MAJOR_VERSION = 0,
-    MINOR_VERSION = 1,
-    RELEASE_VERSION = 3;
+public class Ptr <T> {
 
-  public static String getVersion() {
-    return String.format(
-        "%d.%d.%d",
-        MAJOR_VERSION,
-        MINOR_VERSION,
-        RELEASE_VERSION
-        );
+  public T value;
+
+  public Ptr() {
+
+    this.value = null;
+
   }
-  
+
+	
 }
