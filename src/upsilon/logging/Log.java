@@ -315,6 +315,7 @@ public class Log {
 		}
 
     @Override
+    @SuppressWarnings("fallthrough")
     public String apply(String s) {
       
 			char c = s.charAt(s.length() - 1);

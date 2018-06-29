@@ -21,6 +21,8 @@
 package upsilon.tools;
 
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Function;
 
 
@@ -47,6 +49,28 @@ public /*static*/ class StringTools { private StringTools() {  }
 
     return true;
 	}
+
+  public static String simplifyWhitespace(String string) {
+    return simplifyWhitespace(string, ' ');
+  }
+  
+  public static String simplifyWhitespace(String string, char replaceChar) {
+
+    boolean lastWasWhitespace = false;
+    StringBuilder sb = new StringBuilder();
+
+    for (char c : string.toCharArray()) {
+      if (Character.isWhitespace(c))
+        lastWasWhitespace = true;
+      else {
+        if (lastWasWhitespace && sb.length() != 0)
+          sb.append(replaceChar);
+        sb.append(c);
+      }
+    }
+
+    return sb.toString();
+  }
 
 	public static String repeat(int count, char c) {
 		if (count < 0)
@@ -129,6 +153,7 @@ public /*static*/ class StringTools { private StringTools() {  }
     Function<String, String> callback
 	  ) {
 
+    String callbackRet;
 		StringBuilder sb, buffer;
 		boolean parsingArg = false;
 
@@ -155,7 +180,15 @@ public /*static*/ class StringTools { private StringTools() {  }
 									);
 				}
 				else if (ArrayTools.contains(terminators, c)) {
-					sb.append(callback.apply(buffer.toString() + c));
+					callbackRet = callback.apply(buffer.toString() + c);
+          if (callbackRet == null)
+            throw new IllegalArgumentException(
+                    String.format(
+                      "bad format specifier: %%%s",
+                      buffer.toString() + c
+                    )
+                  );
+          sb.append(callbackRet);
 					buffer = new StringBuilder();
 				  parsingArg = false;
 				}

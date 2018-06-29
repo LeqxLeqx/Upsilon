@@ -23,6 +23,7 @@ package upsilon.tools;
 import java.util.Random;
 import java.util.function.Function;
 import java.util.function.BiConsumer;
+import java.util.function.IntFunction;
 
 /**
  * Class full of methods for the purpose
@@ -75,7 +76,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     return false;
   }
   
-  public static <T> boolean referenceContains(T[] array, T t){
+  public static <T> boolean containsReference(T[] array, T t){
     if (array == null)
       throw new IllegalArgumentException("array cannot be null");
 
@@ -1494,7 +1495,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     Integer[] ret = new Integer[array.length];
 
     for(int k = 0; k < array.length; k++) {
-      ret[k] = new Integer(array[k]);
+      ret[k] = Integer.valueOf(array[k]);
     }
 
     return ret;
@@ -1506,7 +1507,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     Long[] ret = new Long[array.length];
 
     for(int k = 0; k < array.length; k++) {
-      ret[k] = new Long(array[k]);
+      ret[k] = Long.valueOf(array[k]);
     }
 
     return ret;
@@ -1518,7 +1519,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     Short[] ret = new Short[array.length];
 
     for(int k = 0; k < array.length; k++) {
-      ret[k] = new Short(array[k]);
+      ret[k] = Short.valueOf(array[k]);
     }
 
     return ret;
@@ -1530,7 +1531,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     Byte[] ret = new Byte[array.length];
 
     for(int k = 0; k < array.length; k++) {
-      ret[k] = new Byte(array[k]);
+      ret[k] = Byte.valueOf(array[k]);
     }
 
     return ret;
@@ -1542,7 +1543,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     Float[] ret = new Float[array.length];
 
     for(int k = 0; k < array.length; k++) {
-      ret[k] = new Float(array[k]);
+      ret[k] = Float.valueOf(array[k]);
     }
 
     return ret;
@@ -1554,7 +1555,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     Double[] ret = new Double[array.length];
 
     for(int k = 0; k < array.length; k++) {
-      ret[k] = new Double(array[k]);
+      ret[k] = Double.valueOf(array[k]);
     }
 
     return ret;
@@ -1566,7 +1567,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     Character[] ret = new Character[array.length];
 
     for(int k = 0; k < array.length; k++) {
-      ret[k] = new Character(array[k]);
+      ret[k] = Character.valueOf(array[k]);
     }
 
     return ret;
@@ -1664,37 +1665,29 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
 
 
 
-  public static <T, U> T[] copy(T[] destination, U[] source) {
+  public static <T> T[] copy(T[] destination, T[] source) {
     if (destination == null || source == null)
       throw new IllegalArgumentException("array cannot be null");
     if (destination.length != source.length)
       throw new IllegalArgumentException("destination and source have incompatible lengths");
 
-    for(int k = 0; k < destination.length; k++) {
-      destination[k] = (T) source[k];
-    }
+    System.arraycopy(source, 0, destination, 0, destination.length);
 
     return destination;
   }
 
 
-  public static <T> Object[] concat(T[] a1, T[] a2) {
-    return concat(new Object[a1.length + a2.length], a1, a2);
-  }
-  public static <T, U> U[] concat(U[] ret, T[] a1, T[] a2) {
+  public static <T> T[] concat(T[] a1, T[] a2, IntFunction<T[]> con) {
 
-    if (ret == null || a1 == null || a2 == null)
+    T[] ret;
+
+    if (a1 == null || a2 == null)
       throw new IllegalArgumentException("array cannot be null");
 
-    if (ret.length != a1.length + a2.length)
-      throw new IllegalArgumentException("destination array size does not match sum of input arrays");
+    ret = con.apply(a1.length + a2.length);
 
-    for(int k = 0; k < a1.length; k++) {
-      ret[k] = (U) a1[k];
-    }
-    for(int k = 0; k < a2.length; k++) {
-      ret[k + a1.length] = (U) a2[k];
-    }
+    System.arraycopy(a1, 0, ret, 0, a1.length);
+    System.arraycopy(a2, 0, ret, a1.length, a2.length);
 
     return ret;
 
@@ -1706,13 +1699,9 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
       throw new IllegalArgumentException("array cannot be null");
 
     long[] ret = new long[a1.length + a2.length];
-
-    for(int k = 0; k < a1.length; k++) {
-      ret[k] = a1[k];
-    }
-    for(int k = 0; k < a2.length; k++) {
-      ret[k + a1.length] = a2[k];
-    }
+    
+    System.arraycopy(a1, 0, ret, 0, a1.length);
+    System.arraycopy(a2, 0, ret, a1.length, a2.length);
 
     return ret;
   }
@@ -1723,12 +1712,8 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
 
     int[] ret = new int[a1.length + a2.length];
 
-    for(int k = 0; k < a1.length; k++) {
-      ret[k] = a1[k];
-    }
-    for(int k = 0; k < a2.length; k++) {
-      ret[k + a1.length] = a2[k];
-    }
+    System.arraycopy(a1, 0, ret, 0, a1.length);
+    System.arraycopy(a2, 0, ret, a1.length, a2.length);
 
     return ret;
   }
@@ -1739,12 +1724,8 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
 
     short[] ret = new short[a1.length + a2.length];
 
-    for(int k = 0; k < a1.length; k++) {
-      ret[k] = a1[k];
-    }
-    for(int k = 0; k < a2.length; k++) {
-      ret[k + a1.length] = a2[k];
-    }
+    System.arraycopy(a1, 0, ret, 0, a1.length);
+    System.arraycopy(a2, 0, ret, a1.length, a2.length);
 
     return ret;
   }
@@ -1755,12 +1736,8 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
 
     byte[] ret = new byte[a1.length + a2.length];
 
-    for(int k = 0; k < a1.length; k++) {
-      ret[k] = a1[k];
-    }
-    for(int k = 0; k < a2.length; k++) {
-      ret[k + a1.length] = a2[k];
-    }
+    System.arraycopy(a1, 0, ret, 0, a1.length);
+    System.arraycopy(a2, 0, ret, a1.length, a2.length);
 
     return ret;
   }
@@ -1771,12 +1748,8 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
 
     float[] ret = new float[a1.length + a2.length];
 
-    for(int k = 0; k < a1.length; k++) {
-      ret[k] = a1[k];
-    }
-    for(int k = 0; k < a2.length; k++) {
-      ret[k + a1.length] = a2[k];
-    }
+    System.arraycopy(a1, 0, ret, 0, a1.length);
+    System.arraycopy(a2, 0, ret, a1.length, a2.length);
 
     return ret;
   }
@@ -1787,12 +1760,8 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
 
     double[] ret = new double[a1.length + a2.length];
 
-    for(int k = 0; k < a1.length; k++) {
-      ret[k] = a1[k];
-    }
-    for(int k = 0; k < a2.length; k++) {
-      ret[k + a1.length] = a2[k];
-    }
+    System.arraycopy(a1, 0, ret, 0, a1.length);
+    System.arraycopy(a2, 0, ret, a1.length, a2.length);
 
     return ret;
   }
@@ -1803,41 +1772,47 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
 
     char[] ret = new char[a1.length + a2.length];
 
-    for(int k = 0; k < a1.length; k++) {
-      ret[k] = a1[k];
-    }
-    for(int k = 0; k < a2.length; k++) {
-      ret[k + a1.length] = a2[k];
-    }
+    System.arraycopy(a1, 0, ret, 0, a1.length);
+    System.arraycopy(a2, 0, ret, a1.length, a2.length);
 
     return ret;
   }
 
 
 
-  public static <T> T[] subArray(T[] array, T[] destination, int start, int end) {
+  public static <T> T[] subArray(
+      T[] array,
+      int start,
+      int end,
+      IntFunction<T[]> con
+    ) {
+
+    T[] destination;
+
     if (array == null)
       throw new IllegalArgumentException("array cannot be null");
-    if (destination == null)
-      throw new IllegalArgumentException("destination array cannot be null");
-
+    if (con == null)
+      throw new IllegalArgumentException("constructor cannot be null");
     if (start < 0)
       throw new IllegalArgumentException("start cannot be less than zero");
     if (end > array.length)
       throw new IllegalArgumentException("end cannot be greater than the length of the array");
     if (end < start)
       throw new IllegalArgumentException("start cannot be greater than end");
-    if (destination.length != end - start)
-      throw new IllegalArgumentException("destination array is of the wrong size");
+
+    destination = con.apply(end - start);
 
     for (int k = start; k < end; k++) {
       destination[k - start] = array[k];
     }
 
-    return array;
+    return destination;
   }
 
   public static byte[] subArray(byte[] array, int start, int end) {
+
+    byte[] destination;
+
     if (array == null)
       throw new IllegalArgumentException("array cannot be null");
     if (start < 0)
@@ -1847,7 +1822,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     if (end < start)
       throw new IllegalArgumentException("start cannot be greater than end");
 
-    byte[] destination = new byte[end - start];
+    destination = new byte[end - start];
 
     for (int k = start; k < end; k++) {
       destination[k - start] = array[k];
@@ -1857,6 +1832,9 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
   }
 
   public static short[] subArray(short[] array, int start, int end) {
+
+    short[] destination;
+
     if (array == null)
       throw new IllegalArgumentException("array cannot be null");
     if (start < 0)
@@ -1866,7 +1844,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     if (end < start)
       throw new IllegalArgumentException("start cannot be greater than end");
 
-    short[] destination = new short[end - start];
+    destination = new short[end - start];
 
     for (int k = start; k < end; k++) {
       destination[k - start] = array[k];
@@ -1876,6 +1854,9 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
   }
 
   public static int[] subArray(int[] array, int start, int end) {
+
+    int[] destination;
+
     if (array == null)
       throw new IllegalArgumentException("array cannot be null");
     if (start < 0)
@@ -1885,7 +1866,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     if (end < start)
       throw new IllegalArgumentException("start cannot be greater than end");
 
-    int[] destination = new int[end - start];
+    destination = new int[end - start];
 
     for (int k = start; k < end; k++) {
       destination[k - start] = array[k];
@@ -1895,6 +1876,9 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
   }
 
   public static long[] subArray(long[] array, int start, int end) {
+
+    long[] destination;
+
     if (array == null)
       throw new IllegalArgumentException("array cannot be null");
     if (start < 0)
@@ -1904,7 +1888,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     if (end < start)
       throw new IllegalArgumentException("start cannot be greater than end");
 
-    long[] destination = new long[end - start];
+    destination = new long[end - start];
 
     for (int k = start; k < end; k++) {
       destination[k - start] = array[k];
@@ -1914,6 +1898,9 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
   }
 
   public static float[] subArray(float[] array, int start, int end) {
+    
+    float[] destination;
+
     if (array == null)
       throw new IllegalArgumentException("array cannot be null");
     if (start < 0)
@@ -1923,7 +1910,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     if (end < start)
       throw new IllegalArgumentException("start cannot be greater than end");
 
-    float[] destination = new float[end - start];
+    destination = new float[end - start];
 
     for (int k = start; k < end; k++) {
       destination[k - start] = array[k];
@@ -1933,6 +1920,9 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
   }
 
   public static double[] subArray(double[] array, int start, int end) {
+
+    double[] destination;
+
     if (array == null)
       throw new IllegalArgumentException("array cannot be null");
     if (start < 0)
@@ -1942,7 +1932,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     if (end < start)
       throw new IllegalArgumentException("start cannot be greater than end");
 
-    double[] destination = new double[end - start];
+    destination = new double[end - start];
 
     for (int k = start; k < end; k++) {
       destination[k - start] = array[k];
@@ -1952,6 +1942,9 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
   }
 
   public static char[] subArray(char[] array, int start, int end) {
+
+    char[] destination;
+
     if (array == null)
       throw new IllegalArgumentException("array cannot be null");
     if (start < 0)
@@ -1961,7 +1954,7 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
     if (end < start)
       throw new IllegalArgumentException("start cannot be greater than end");
 
-    char[] destination = new char[end - start];
+    destination = new char[end - start];
 
     for (int k = start; k < end; k++) {
       destination[k - start] = array[k];

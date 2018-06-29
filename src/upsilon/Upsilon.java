@@ -18,14 +18,22 @@
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-package upsilon.logging;
+package upsilon;
 
-public class LogException extends RuntimeException {
+public /*static*/ class Upsilon { private Upsilon() {}
+  
+  public static final int
+    MAJOR_VERSION = 0,
+    MINOR_VERSION = 1,
+    RELEASE_VERSION = 2;
 
-  public static final long serialVersionUID = 0xb83e29ea993f1f2l;
-
-	public LogException(String message) {
-		super(message);
-	}
-	
+  public static String getVersion() {
+    return String.format(
+        "%d.%d.%d",
+        MAJOR_VERSION,
+        MINOR_VERSION,
+        RELEASE_VERSION
+        );
+  }
+  
 }
