@@ -68,9 +68,9 @@ public /*static*/ class ArrayTools { private ArrayTools() {  }
       if (e == null && t == null)
         return true;
       else if (e == null || t == null)
-				return false;
-      else
-        return e.equals(t);
+				continue;
+			else if (e.equals(t))
+				return true;
     }
 
     return false;

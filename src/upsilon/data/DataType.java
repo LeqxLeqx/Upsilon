@@ -18,22 +18,53 @@
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-package upsilon;
+package upsilon.data;
 
-public /*static*/ class Upsilon { private Upsilon() {}
-  
-  public static final int
-    MAJOR_VERSION = 0,
-    MINOR_VERSION = 2,
-    RELEASE_VERSION = 0;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
-  public static String getVersion() {
-    return String.format(
-        "%d.%d.%d",
-        MAJOR_VERSION,
-        MINOR_VERSION,
-        RELEASE_VERSION
-        );
+public enum DataType {
+
+	NONE (null, null),
+	OBJECT (Object.class, new Object()),
+
+	INTEGER (Long.class, 0L),
+	REAL (Double.class, 0D) ,
+	LOGICAL (Boolean.class, false),
+
+	STRING (String.class, ""),
+	DATETIME (
+		LocalDateTime.class, 
+		LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC)
+		),
+	RAW (byte[].class, new byte[0]),
+
+	;
+
+  public final Class storingClass;
+	public Object nonNullDefault;
+
+  DataType(Class storingClass, Object nonNullDefault) {
+    this.storingClass = storingClass;
+		this.nonNullDefault = nonNullDefault;
   }
-  
+	
+
+  public <T> T cast(Object object, Class<T> realType) {
+
+    if (storingClass != realType)
+      throw new DataTypeException(this, realType);
+
+    try {
+      return realType.cast(object);
+    } catch (ClassCastException e) {
+      throw new DataTypeException(this, realType, e);
+    }
+  }
+
+  public boolean accepts(Class realType) {
+    return this.storingClass.isAssignableFrom(realType);
+  }
+
+	
 }

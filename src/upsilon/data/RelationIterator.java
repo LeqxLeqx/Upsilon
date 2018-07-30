@@ -17,23 +17,47 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+package upsilon.data;
 
-package upsilon;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
-public /*static*/ class Upsilon { private Upsilon() {}
-  
-  public static final int
-    MAJOR_VERSION = 0,
-    MINOR_VERSION = 2,
-    RELEASE_VERSION = 0;
+class RelationIterator<RowType extends Row, ColumnType extends Column> 
+				implements Iterator<RowType>{
 
-  public static String getVersion() {
-    return String.format(
-        "%d.%d.%d",
-        MAJOR_VERSION,
-        MINOR_VERSION,
-        RELEASE_VERSION
-        );
-  }
-  
+	private final Relation<RowType,ColumnType> relation;	
+	private List<RowType> rows;
+	private Iterator<RowType> iterator;
+
+	RelationIterator(Relation<RowType,ColumnType> relation) {
+		this.relation = relation;
+		this.rows = new LinkedList<>();
+		this.iterator = null;
+	}
+
+	private void init() {
+		if (this.iterator == null) {
+			this.rows = Arrays.asList(relation.getRows());
+			this.iterator = rows.iterator();
+		}
+	}
+
+	/* TODO : IMPLEMENT WITH forEachContext ENGAGING PROPERLY */
+
+	@Override
+	public boolean hasNext() {
+		init();
+		return this.iterator.hasNext();
+	}
+
+	@Override
+	public RowType next() {
+		init();
+		return this.iterator.next();
+	}
+
+
+	
 }

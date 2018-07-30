@@ -17,23 +17,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+package upsilon.data;
 
-package upsilon;
+public class InvalidChildModificationException extends Exception {
 
-public /*static*/ class Upsilon { private Upsilon() {}
-  
-  public static final int
-    MAJOR_VERSION = 0,
-    MINOR_VERSION = 2,
-    RELEASE_VERSION = 0;
-
-  public static String getVersion() {
-    return String.format(
-        "%d.%d.%d",
-        MAJOR_VERSION,
-        MINOR_VERSION,
-        RELEASE_VERSION
-        );
+  InvalidChildModificationException(String message, Object... params) {
+    super(String.format(message, params));
   }
   
 }

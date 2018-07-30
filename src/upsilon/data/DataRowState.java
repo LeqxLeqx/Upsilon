@@ -18,22 +18,16 @@
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-package upsilon;
+package upsilon.data;
 
-public /*static*/ class Upsilon { private Upsilon() {}
-  
-  public static final int
-    MAJOR_VERSION = 0,
-    MINOR_VERSION = 2,
-    RELEASE_VERSION = 0;
+public enum DataRowState {
+	
+	NONE,
+	UNMODIFIED,
+	UPDATED,
+	ADDED,
+	DELETED,
 
-  public static String getVersion() {
-    return String.format(
-        "%d.%d.%d",
-        MAJOR_VERSION,
-        MINOR_VERSION,
-        RELEASE_VERSION
-        );
-  }
-  
+	;
+	
 }

@@ -17,23 +17,58 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+package upsilon.data;
 
-package upsilon;
+public class ReferenceColumn implements Column<ReferenceRelation> {
 
-public /*static*/ class Upsilon { private Upsilon() {}
-  
-  public static final int
-    MAJOR_VERSION = 0,
-    MINOR_VERSION = 2,
-    RELEASE_VERSION = 0;
+  private ReferenceRelation owner;
+  private final String columnName;
+  private final Column reference;
+  private final int index;
 
-  public static String getVersion() {
-    return String.format(
-        "%d.%d.%d",
-        MAJOR_VERSION,
-        MINOR_VERSION,
-        RELEASE_VERSION
-        );
+  ReferenceColumn(
+      String columnName,
+      int index,
+      Column reference
+      ) {
+    this.index = index;
+    this.columnName = columnName;
+    this.reference = reference;
   }
+
+
+  @Override
+  public ColumnType getColumnType() {
+    return ColumnType.REFERENCE;
+  }
+
+  @Override
+  public String getColumnName() {
+    return this.columnName;
+  }
+
+  @Override
+  public DataType getColumnDataType() {
+    return this.reference.getColumnDataType();
+  }
+
+  @Override
+  public int getIndex() {
+    return this.index;
+  }
+
+  @Override
+  public ReferenceRelation getOwner() {
+    return this.owner;
+  }
+
+  Column getReference() {
+    return this.reference;
+  }
+
+	ReferenceColumn setOwner(ReferenceRelation owner) {
+		this.owner = owner;
+		return this;
+	}
   
 }

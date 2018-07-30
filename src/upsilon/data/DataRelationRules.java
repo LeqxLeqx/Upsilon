@@ -17,23 +17,68 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+package upsilon.data;
 
-package upsilon;
-
-public /*static*/ class Upsilon { private Upsilon() {}
+public final class DataRelationRules {
   
-  public static final int
-    MAJOR_VERSION = 0,
-    MINOR_VERSION = 2,
-    RELEASE_VERSION = 0;
+  private DataRelation
+    owner;
+  private boolean 
+    ignoreCase,
+    actionsModifyRowState,
+		autoNullToDefault;
 
-  public static String getVersion() {
-    return String.format(
-        "%d.%d.%d",
-        MAJOR_VERSION,
-        MINOR_VERSION,
-        RELEASE_VERSION
-        );
+  public DataRelationRules() {
+    this.owner = null;
+    this.ignoreCase = true;
+    this.actionsModifyRowState = true;
+		this.autoNullToDefault = false;
+  }
+
+  public boolean getIgnoreCase() {
+    return ignoreCase;
+  }
+  public boolean getActionsModifyRowState() {
+    return actionsModifyRowState;
+  }
+	public boolean getAutoNullToDefault() {
+		return autoNullToDefault;
+	}
+
+
+  DataRelationRules setOwner(DataRelation owner) {
+    this.owner = owner;
+    return this;
+  }
+  public DataRelationRules setIgnoreCase(boolean value) {
+    boolean original = this.ignoreCase;
+
+    this.ignoreCase = value;
+    if (this.owner != null && original != value) {
+      try {
+        this.owner.notifyRulesIgnoreCaseChanged();
+      } catch (InvalidChildModificationException e) {
+        this.ignoreCase = original;
+        throw new IllegalStateException(e.getMessage());
+      }
+    }
+    return this;
+  }
+  public DataRelationRules setActionsModifyRowState(boolean value) {
+    this.actionsModifyRowState = value;
+    return this;
+  }
+	public DataRelationRules setAutoNullToDefault(boolean value) {
+		this.autoNullToDefault = value;
+		return this;
+	}
+
+
+  void copyFrom(DataRelationRules rules) {
+    
+    setIgnoreCase(rules.ignoreCase);
+    setActionsModifyRowState(rules.actionsModifyRowState);
+
   }
   
 }

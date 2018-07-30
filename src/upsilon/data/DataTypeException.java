@@ -17,23 +17,32 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+package upsilon.data;
 
-package upsilon;
+public class DataTypeException extends RuntimeException {
 
-public /*static*/ class Upsilon { private Upsilon() {}
-  
-  public static final int
-    MAJOR_VERSION = 0,
-    MINOR_VERSION = 2,
-    RELEASE_VERSION = 0;
+  public final DataType dataType;
+  public final Class realType;
 
-  public static String getVersion() {
-    return String.format(
-        "%d.%d.%d",
-        MAJOR_VERSION,
-        MINOR_VERSION,
-        RELEASE_VERSION
-        );
+  DataTypeException(DataType dataType, Class realType) {
+    super(String.format(
+        "java class type %s is not compatable with data type %s",
+        realType.getName(),
+        dataType.toString()
+        ));
+    this.dataType = dataType;
+    this.realType = realType;
+  }
+
+  DataTypeException(DataType dataType, Class realType, ClassCastException e) {
+    super(String.format(
+        "failed to cast object of stated type %s to java class type %s",
+        dataType.toString(),
+        realType.getName()
+        ),
+        e);
+    this.dataType = dataType;
+    this.realType = realType;
   }
   
 }
