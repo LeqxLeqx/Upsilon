@@ -76,8 +76,8 @@ public final class DataRelation implements Relation<DataRow,DataColumn> {
     this.rules.copyFrom(rules);
     return this;
   }
-  public DataRelation setRelationName(String tableName) {
-    this.relationName = tableName;
+  public DataRelation setRelationName(String relationName) {
+    this.relationName = relationName;
 
     return this;
   }
@@ -367,7 +367,7 @@ public final class DataRelation implements Relation<DataRow,DataColumn> {
     if (columnName != null) {
       if (!columnNameWillBeUnique(columnName))
         throw new InvalidChildModificationException(
-            "column of name `%s' is already present within the table",
+            "column of name `%s' is already present within the relation",
             columnName
             );
 
@@ -433,11 +433,11 @@ public final class DataRelation implements Relation<DataRow,DataColumn> {
     if (o.getOwner() != null) {
       if (o.getOwner() == this)
         throw new IllegalArgumentException(
-          "given " + typeName + " already belongs to this table"
+          "given " + typeName + " already belongs to this relation"
           );
       else
         throw new IllegalArgumentException(
-          "given " + typeName + " already belongs to another table"
+          "given " + typeName + " already belongs to another relation"
           );
     }
   }
@@ -445,7 +445,7 @@ public final class DataRelation implements Relation<DataRow,DataColumn> {
 	private void assertOwned(Ownable<DataRelation> o, String typeName) {
 		if (o.getOwner() != this)
 			throw new IllegalArgumentException(
-				"given " + typeName + " does not belong to this table"
+				"given " + typeName + " does not belong to this relation"
 				);
 	}
 
