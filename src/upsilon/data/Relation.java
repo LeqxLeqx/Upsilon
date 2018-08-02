@@ -21,46 +21,65 @@ package upsilon.data;
 
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import upsilon.sanity.Sane;
 import upsilon.tools.ArrayTools;
 
-public interface Relation <RowType extends Row, ColumnType extends Column>
-				extends Iterable<RowType> {	
+public interface Relation <TypeOfRow extends Row, TypeOfColumn extends Column>
+				extends Iterable<TypeOfRow>, Sane {
 
   Column getColumn(int index);
   Column getColumn(String name);
 
-  RowType[] getRows();
-  ColumnType[] getColumns();
+  TypeOfRow[] getRows();
+  TypeOfColumn[] getColumns();
 
 	int getColumnCount();
 	int getRowCount();
 
-	void forEachRow(Consumer<RowType> consumer);
-	void forEachColumn(Consumer<ColumnType> consumer);
+	void forEachRow(Consumer<TypeOfRow> consumer);
+	void forEachColumn(Consumer<TypeOfColumn> consumer);
 
 	@Override
-	default Iterator<RowType> iterator() {
+	default Iterator<TypeOfRow> iterator() {
 		return new RelationIterator(this);
 	}
 
+
+  /* SELECT */
 	
-	Relation<Row,Column> select(Predicate<RowType> predicate);
-	default Relation select() {
+	Relation<? extends Row,? extends Column> select(
+      Predicate<TypeOfRow> predicate
+      );
+	default Relation<? extends Row,? extends Column> select() {
 		return select(row -> true);
 	}
-	
-	Relation<Row,Column> sort(Comparator<RowType> comparator);
 
-	Relation<Row,Column> project(Predicate<ColumnType> predicate);
-	default Relation project(final ColumnType... columns) {
+  /* SORT */
+	
+	Relation<? extends Row,? extends Column> sort(
+      Comparator<TypeOfRow> comparator
+      );
+
+  /* PROJECT */
+
+	Relation<? extends Row,? extends Column> project(
+      Predicate<TypeOfColumn> predicate
+      );
+	default Relation<? extends Row, ? extends Column> project(
+      final TypeOfColumn... columns
+      ) {
 		if (ArrayTools.isNullOrContainsNull(columns))
 			throw new IllegalArgumentException("column list cannot contain nulls");
 
 		return project(column -> ArrayTools.contains(columns, column));
 	}
-	default Relation project(final String... columnNames) {
+	default Relation<? extends Row, ? extends Column> project(
+      final String... columnNames
+      ) {
 		if (ArrayTools.isNullOrContainsNull(columnNames))
 			throw new IllegalArgumentException(
 					"column name list cannot contain nulls"
@@ -71,5 +90,48 @@ public interface Relation <RowType extends Row, ColumnType extends Column>
 				);
 	}
 
-	/* TODO: ADD IN RENAMES */
+  /* RENAME */
+
+  Relation<? extends Row,? extends Column> rename(
+      Function<TypeOfColumn,String> function
+      );
+  Relation<? extends Row,? extends Column> rename(final String... names);
+  
+  /* CARTESIAN PRODUCT */
+  <R extends Row, C extends Column> Relation<? extends Row,? extends Column> 
+  product(Relation<R,C> relation);
+
+  /* JOIN */
+  <R extends Row, C extends Column> Relation<? extends Row,? extends Column> 
+  join(Relation<R,C> relation, BiPredicate<TypeOfRow, R> predicate);
+  
+  <R extends Row, C extends Column> Relation<? extends Row,? extends Column> 
+  naturalJoin(Relation<R,C> relation);
+
+  <R extends Row, C extends Column> Relation<? extends Row,? extends Column>
+  equiJoin(Relation<R,C> relation, String... names);
+
+  <R extends Row, C extends Column> Relation<? extends Row,? extends Column>
+  semiJoin(Relation<R,C> relation);
+
+  <R extends Row, C extends Column> Relation<? extends Row,? extends Column>
+  antiJoin(Relation<R,C> relation);
+
+  /*
+  <R extends Row, C extends Column> Relation<? extends Row,? extends Column>
+  divide(Relation<R,C> relation);
+  
+  <R extends Row, C extends Column> Relation<? extends Row,? extends Column>
+  fullOuterJoin(Relation<R,C> relation);
+
+  <R extends Row, C extends Column> Relation<? extends Row,? extends Column>
+  leftOuterJoin(Relation<R,C> relation);
+
+  <R extends Row, C extends Column> Relation<? extends Row,? extends Column>
+  rightOuterJoin(Relation<R,C> relation);
+  */
+
+  
+
+
 }

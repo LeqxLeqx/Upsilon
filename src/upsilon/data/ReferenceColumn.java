@@ -19,17 +19,19 @@
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 package upsilon.data;
 
+import upsilon.sanity.InsaneException;
+
 public class ReferenceColumn implements Column<ReferenceRelation> {
 
   private ReferenceRelation owner;
   private final String columnName;
-  private final Column reference;
+  private final Column<? extends Relation> reference;
   private final int index;
 
   ReferenceColumn(
       String columnName,
       int index,
-      Column reference
+      Column<? extends Relation> reference
       ) {
     this.index = index;
     this.columnName = columnName;
@@ -58,11 +60,26 @@ public class ReferenceColumn implements Column<ReferenceRelation> {
   }
 
   @Override
+  public boolean isNullable() {
+    return this.reference.isNullable();
+  }
+  @Override
+  public boolean isReadOnly() {
+    return this.reference.isReadOnly();
+  }
+
+  @Override
   public ReferenceRelation getOwner() {
     return this.owner;
   }
+  
+  @Override
+  public void checkSanity() throws InsaneException {
+    InsaneException.assertTrue(this.owner != null);
+    InsaneException.assertTrue(this.reference != null);
+  }
 
-  Column getReference() {
+  Column<? extends Relation> getReference() {
     return this.reference;
   }
 

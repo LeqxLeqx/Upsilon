@@ -20,30 +20,35 @@
 package upsilon.data;
 
 import java.time.LocalDateTime;
+import upsilon.sanity.Sane;
 import upsilon.tools.WrapperTools;
 
-public interface Row<OwningType> extends Ownable<OwningType> {
+public interface Row<OwningType> extends Ownable<OwningType>, Sane {
 
   RowType getRowType();
 
-  Object get(Column column);
+  Object get(Column<OwningType> column);
   Object get(int index);
   Object get(String columnName);
+
+  Row<OwningType> set(Column<OwningType> column, Object object);
+  Row<OwningType> set(int index, Object object);
+  Row<OwningType> set(String columnName, Object object);
   
   DataType getDataType(String columnName);
   DataType getDataType(int index);
   
-  default boolean isNull(Column column) {
-		return get(column) == null;
+  default boolean isNull(Column<OwningType> column) {
+    return get(column) == null;
 	}
   default boolean isNull(int index) {
-		return get(index) == null;
-	}
+    return get(index) == null;
+  }
   default boolean isNull(String columnName) {
-		return get(columnName) == null;
-	}
+    return get(columnName) == null;
+  }
 
-  default <T> T get(Column column, Class<T> realType) {
+  default <T> T get(Column<OwningType> column, Class<T> realType) {
     Object ret;
     DataType dataType;
     
@@ -73,7 +78,7 @@ public interface Row<OwningType> extends Ownable<OwningType> {
 
   /* TYPED GETTERS */
 
-  default long getLong(DataColumn column) {
+  default long getLong(Column<OwningType> column) {
 		return WrapperTools.defaultToZero(get(column, Long.class));
   }
   default long getLong(int index) {
@@ -83,7 +88,7 @@ public interface Row<OwningType> extends Ownable<OwningType> {
     return WrapperTools.defaultToZero(get(columnName, Long.class));
   }
   
-  default int getInt(DataColumn column) {
+  default int getInt(Column<OwningType> column) {
     return (int) getLong(column);
   }
   default int getInt(int index) {
@@ -93,7 +98,7 @@ public interface Row<OwningType> extends Ownable<OwningType> {
     return (int) getLong(columnName);
   }
 
-  default short getShort(DataColumn column) {
+  default short getShort(Column<OwningType> column) {
     return (short) getLong(column);
   }
   default short getShort(int index) {
@@ -103,7 +108,7 @@ public interface Row<OwningType> extends Ownable<OwningType> {
     return (short) getLong(columnName);
   }
 
-  default byte getByte(DataColumn column) {
+  default byte getByte(Column<OwningType> column) {
     return (byte) getLong(column);
   }
   default byte getByte(int index) {
@@ -113,7 +118,7 @@ public interface Row<OwningType> extends Ownable<OwningType> {
     return (byte) getLong(columnName);
   }
 
-  default double getDouble(DataColumn column) {
+  default double getDouble(Column<OwningType> column) {
     return WrapperTools.defaultToZero(get(column, Double.class));
   }
   default double getDouble(int index) {
@@ -123,7 +128,7 @@ public interface Row<OwningType> extends Ownable<OwningType> {
     return WrapperTools.defaultToZero(get(columnName, Double.class));
   }
 
-  default float getFloat(DataColumn column) {
+  default float getFloat(Column<OwningType> column) {
     return (float) getDouble(column);
   }
   default float getFloat(int index) {
@@ -133,7 +138,7 @@ public interface Row<OwningType> extends Ownable<OwningType> {
     return (float) getDouble(columnName);
   }
 
-  default boolean getBoolean(DataColumn column) {
+  default boolean getBoolean(Column<OwningType> column) {
     return WrapperTools.defaultToFalse(get(column, Boolean.class));
   }
   default boolean getBoolean(int index) {
@@ -143,7 +148,7 @@ public interface Row<OwningType> extends Ownable<OwningType> {
     return WrapperTools.defaultToFalse(get(columnName, Boolean.class));
   }
 
-  default String getString(DataColumn column) {
+  default String getString(Column<OwningType> column) {
     return get(column, String.class);
   }
   default String getString(int index) {
@@ -153,7 +158,7 @@ public interface Row<OwningType> extends Ownable<OwningType> {
     return get(columnName, String.class);
   }
 
-  default LocalDateTime getDateTime(DataColumn column) {
+  default LocalDateTime getDateTime(Column<OwningType> column) {
     return get(column, LocalDateTime.class);
   }
   default LocalDateTime getDateTime(int index) {
@@ -163,7 +168,7 @@ public interface Row<OwningType> extends Ownable<OwningType> {
     return get(columnName, LocalDateTime.class);
   }
 
-  default byte[] getRaw(DataColumn column) {
+  default byte[] getRaw(Column<OwningType> column) {
     return get(column, byte[].class);
   }
   default byte[] getRaw(int index) {
@@ -172,4 +177,107 @@ public interface Row<OwningType> extends Ownable<OwningType> {
   default byte[] getRaw(String columnName) {
     return get(columnName, byte[].class);
   }
+
+  /* TYPED SETTERS */
+
+  default Row<OwningType> setLong(Column<OwningType> column, long value) {
+    return set(column, value);
+  }
+  default Row<OwningType> setLong(int index, long value) {
+    return set(index, value);
+  }
+  default Row<OwningType> setLong(String columnName, long value) {
+    return set(columnName, value);
+  }
+  
+  default Row<OwningType> setInt(Column<OwningType> column, int value) {
+    return setLong(column, value);
+  }
+  default Row<OwningType> setInt(int index, int value) {
+    return setLong(index, value);
+  }
+  default Row<OwningType> setInt(String columnName, int value) {
+    return setLong(columnName, value);
+  }
+  
+  default Row<OwningType> setShort(Column<OwningType> column, short value) {
+    return setLong(column, value);
+  }
+  default Row<OwningType> setShort(int index, short value) {
+    return setLong(index, value);
+  }
+  default Row<OwningType> setShort(String columnName, short value) {
+    return setLong(columnName, value);
+  }
+  
+  default Row<OwningType> setByte(Column<OwningType> column, byte value) {
+    return setLong(column, value);
+  }
+  default Row<OwningType> setByte(int index, byte value) {
+    return setLong(index, value);
+  }
+  default Row<OwningType> setByte(String columnName, byte value) {
+    return setLong(columnName, value);
+  }
+
+  default Row<OwningType> setDouble(Column<OwningType> column, double value) {
+    return set(column, value);
+  }
+  default Row<OwningType> setDouble(int index, double value) {
+    return set(index, value);
+  }
+  default Row<OwningType> setDouble(String columnName, double value) {
+    return set(columnName, value);
+  }
+
+  default Row<OwningType> setFloat(Column<OwningType> column, float value) {
+    return setDouble(column, value);
+  }
+  default Row<OwningType> setFloat(int index, float value) {
+    return setDouble(index, value);
+  }
+  default Row<OwningType> setFloat(String columnName, float value) {
+    return setDouble(columnName, value);
+  }
+
+  default Row<OwningType> setBoolean(Column<OwningType> column, boolean value) {
+    return set(column, value);
+  }
+  default Row<OwningType> setBoolean(int index, boolean value) {
+    return set(index, value);
+  }
+  default Row<OwningType> setBoolean(String columnName, boolean value) {
+    return set(columnName, value);
+  }
+
+  default Row<OwningType> setString(Column<OwningType> column, String value) {
+    return set(column, value);
+  }
+  default Row<OwningType> setString(int index, String value) {
+    return set(index, value);
+  }
+  default Row<OwningType> setString(String columnName, String value) {
+    return set(columnName, value);
+  }
+
+  default Row<OwningType> setDateTime(Column<OwningType> column, LocalDateTime value) {
+    return set(column, value);
+  }
+  default Row<OwningType> setDateTime(int index, LocalDateTime value) {
+    return set(index, value);
+  }
+  default Row<OwningType> setDateTime(String columnName, LocalDateTime value) {
+    return set(columnName, value);
+  }
+
+  default Row<OwningType> setRaw(Column<OwningType> column, byte[] value) {
+    return set(column, value); /* TODO: consider cloning */
+  }
+  default Row<OwningType> setRaw(int index, byte[] value) {
+    return set(index, value);
+  }
+  default Row<OwningType> setRaw(String columnName, byte[] value) {
+    return set(columnName, value);
+  }
+
 }

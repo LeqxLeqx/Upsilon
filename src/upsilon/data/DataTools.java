@@ -19,166 +19,50 @@
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 package upsilon.data;
 
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.util.List;
+import java.util.function.BiPredicate;
 
-public class DataTools { private DataTools() {}
+class DataTools { private DataTools() {}
+  
 
-	public static DataRelation parseDataRelation(ResultSet resultSet) 
-					throws SQLException {
-		
-		DataRelation relation;
+  static <T> boolean containsDuplicateReference(List<T> list) {
+    for (int k = 0; k < list.size() - 1; k++) {
+      for (int i = 1; i < list.size(); i++) {
+        if (list.get(k) == list.get(i))
+          return true;
+      }
+    }
+    return false;
+  }
 
-		if (resultSet == null)
-			throw new IllegalArgumentException("result set cannot be null");
+  static boolean containsDuplicateColumnNames(
+      Relation<? extends Row,? extends Column> first,
+      Relation<? extends Row,? extends Column> second,
+      boolean ignoreCase
+      ) {
+  
+    String c1Name, c2Name;
+    BiPredicate<String, String> stringComparator;
+    if (ignoreCase)
+      stringComparator = String::equalsIgnoreCase;
+    else
+      stringComparator = String::equals;
 
-		relation = parseDataRelationSchema(resultSet);
-		fillDataTable(relation, resultSet);
+    for (Column c1 : first.getColumns()) {
+      c1Name = c1.getColumnName();
+      if (c1Name == null)
+        continue;
+      for (Column c2 : second.getColumns()) {
+        if (c2 == null)
+          continue;
+        c2Name = c2.getColumnName();
 
-		return relation;
-	}
-
-	public static DataRelation parseDataRelationSchema(ResultSet resultSet) 
-					throws SQLException {
-
-		int columnCount;
-		DataRelation relation;
-		DataColumn column;
-		ResultSetMetaData metaData;
-
-		metaData = resultSet.getMetaData();
-		columnCount = metaData.getColumnCount();
-		relation = new DataRelation();
-
-		for (int k = 1; k < columnCount + 1; k++) {
-			column = new DataColumn();
-			
-			column.setColumnName(metaData.getColumnName(k));
-			column.setColumnDataType(
-					sqlTypeIntToDataType(metaData.getColumnType(k))
-					);
-			column.setIsNullable(
-				  metaData.isNullable(k) != ResultSetMetaData.columnNoNulls
-					);
-			
-			relation.addColumn(column);
-		}
-
-		return relation;
-	}
-
-	public static void fillDataTable(DataRelation table, ResultSet resultSet) 
-					throws SQLException {
-
-		DataRow row;
-		boolean originalAutoNullToDefault;
-
-		if (table == null)
-			throw new IllegalArgumentException("table cannot be null");
-		if (resultSet == null)
-			throw new IllegalArgumentException("result set cannot be null");
-
-		originalAutoNullToDefault = table.getRules().getAutoNullToDefault();
-		table.getRules().setAutoNullToDefault(true);
-
-		while (resultSet.next()) {
-			row = table.createRow();
-			for (int k = 0; k < table.getColumnCount(); k++) {
-				row.set(k, upsizeObject(resultSet.getObject(k + 1)));
-			}
-		}
-
-		table.getRules().setAutoNullToDefault(originalAutoNullToDefault);
-	}
-
-
-	private static Object upsizeObject(Object object) {
-
-		Class type;
-
-		if (object == null)
-			return null;
-		type = object.getClass();
-
-		if (type == Byte.class)
-			return (long) ((Byte) object).byteValue();
-		if (type == Short.class)
-			return (long) ((Short) object).shortValue();
-		if (type == Integer.class)
-			return (long) ((Integer) object).intValue();
-		
-		if (type == Float.class)
-			return (double) ((Float) object).floatValue();
-		if (type == Timestamp.class)
-			return toLocalDateTime((Timestamp) object);
-
-		return object;
-	}
-
-	private static DataType sqlTypeIntToDataType(int type) {
-		
-		DataType ret;
-
-		switch (type) {
-
-			case Types.BINARY:
-			case Types.VARBINARY:
-			case Types.LONGVARBINARY:
-			case Types.BLOB:
-				ret = DataType.RAW;
-				break;
-			case Types.BOOLEAN:
-			case Types.BIT:
-				ret = DataType.LOGICAL;
-				break;
-			case Types.CHAR:
-			case Types.VARCHAR:
-			case Types.NCHAR:
-			case Types.NVARCHAR:
-			case Types.LONGVARCHAR:
-			case Types.LONGNVARCHAR:
-				ret = DataType.STRING;
-				break;
-			case Types.INTEGER:
-			case Types.TINYINT:
-			case Types.ROWID:
-				ret = DataType.INTEGER;
-				break;
-			case Types.DATE:
-			case Types.TIMESTAMP:
-				ret = DataType.DATETIME;
-				break;
-			case Types.FLOAT:
-			case Types.DOUBLE:
-			case Types.REAL:
-			case Types.DECIMAL:
-				ret = DataType.REAL;
-				break;
-
-			default:
-				ret = DataType.OBJECT;
-				break;
-
-		}
-
-		return ret;
-
-	}
-
-	private static LocalDateTime toLocalDateTime(Timestamp timestamp) {
-		long millis;
-		Instant instant;
-
-		millis = timestamp.getTime();
-		instant = Instant.ofEpochMilli(millis);
-
-		return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
-	}
+        if (stringComparator.test(c1Name, c2Name))
+          return true;
+      }
+    }
+    
+    return false;
+  }
 	
 }

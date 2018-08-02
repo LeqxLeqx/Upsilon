@@ -23,11 +23,30 @@ package upsilon.data;
 public enum DataRowState {
 	
 	NONE,
+  PENDING,
 	UNMODIFIED,
 	UPDATED,
 	ADDED,
 	DELETED,
 
 	;
+
+  public boolean isActionable() {
+    switch (this) {
+
+      case NONE:
+      case PENDING:
+      case UNMODIFIED:
+        return false;
+      case UPDATED:
+      case ADDED:
+      case DELETED:
+        return true;
+
+      default:
+        throw new RuntimeException("unprogrammed DataRowState " + this);
+
+    }
+  }
 	
 }

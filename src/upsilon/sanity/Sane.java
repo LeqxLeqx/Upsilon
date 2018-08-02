@@ -17,59 +17,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-package upsilon.data;
+package upsilon.sanity;
 
-public final class DataRelationRules {
+public interface Sane {
   
-  private DataRelation
-    owner;
-  private boolean 
-    ignoreCase,
-		autoNullToDefault;
-
-  public DataRelationRules() {
-    this.owner = null;
-    this.ignoreCase = true;
-		this.autoNullToDefault = false;
-  }
-
-  public boolean getIgnoreCase() {
-    return ignoreCase;
-  }
-	public boolean getAutoNullToDefault() {
-		return autoNullToDefault;
-	}
-
-
-  DataRelationRules setOwner(DataRelation owner) {
-    this.owner = owner;
-    return this;
-  }
-  public DataRelationRules setIgnoreCase(boolean value) {
-    boolean original = this.ignoreCase;
-
-    this.ignoreCase = value;
-    if (this.owner != null && original != value) {
-      try {
-        this.owner.notifyRulesIgnoreCaseChanged();
-      } catch (InvalidChildModificationException e) {
-        this.ignoreCase = original;
-        throw new IllegalStateException(e.getMessage());
-      }
-    }
-    return this;
-  }
-	public DataRelationRules setAutoNullToDefault(boolean value) {
-		this.autoNullToDefault = value;
-		return this;
-	}
-
-
-  void copyFrom(DataRelationRules rules) {
-    
-    setIgnoreCase(rules.ignoreCase);
-    setAutoNullToDefault(rules.autoNullToDefault);
-
-  }
+  void checkSanity() throws InsaneException;
   
 }

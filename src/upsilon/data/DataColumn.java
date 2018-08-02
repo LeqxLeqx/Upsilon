@@ -21,10 +21,11 @@
 package upsilon.data;
 
 import java.util.function.Supplier;
+import upsilon.sanity.InsaneException;
 
 public final class DataColumn implements Column<DataRelation> {
 
-  private boolean nullable;
+  private boolean nullable, readOnly;
   private int index;
 	private String columnName;
 	private DataType columnDataType;
@@ -48,9 +49,13 @@ public final class DataColumn implements Column<DataRelation> {
   public ColumnType getColumnType() {
     return ColumnType.DATA;
   }
-
+  @Override
   public boolean isNullable() {
     return this.nullable;
+  }
+  @Override
+  public boolean isReadOnly() {
+    return this.readOnly;
   }
   @Override
   public int getIndex() {
@@ -72,13 +77,17 @@ public final class DataColumn implements Column<DataRelation> {
     Object ret;
 
     ret = defaultObjectCallback.get();
-    if (ret == null && !nullable) {
-			if (
-				this.owner != null && 
-				this.owner.getRules().getAutoNullToDefault() &&
-				this.columnDataType.nonNullDefault != null
-				)
-				ret = this.columnDataType.nonNullDefault;
+    if (ret != null && !this.columnDataType.accepts(ret.getClass()))
+      throw new IllegalStateException(
+          "default object was not compatable with the columnd data type"
+          );
+    if (ret == null && !this.nullable) {
+      if (
+        this.owner != null && 
+        this.owner.getRules().getAutoNullToDefault() &&
+        this.columnDataType.nonNullDefault != null
+        )
+        ret = this.columnDataType.nonNullDefault;
 			else
 				throw new IllegalStateException(
 					"default object was null in a non-nullable column"
@@ -89,7 +98,22 @@ public final class DataColumn implements Column<DataRelation> {
   }
 
   public DataColumn setIsNullable(boolean nullable) {
+    if (
+      nullable && 
+      owner != null && 
+      owner.getPrimaryKey() != null &&
+      owner.getPrimaryKey().hasColumn(this)
+      )
+      throw new DataConstraintException(
+          "this column is owned by a data relation whose primary key " +
+          "contains this column. As such, it may not be set to a nullable state"
+          );
+
     this.nullable = nullable;
+    return this;
+  }
+  public DataColumn setIsReadOnly(boolean readOnly) {
+    this.readOnly = readOnly;
     return this;
   }
   DataColumn setIndexImp(int index) {
@@ -171,5 +195,37 @@ public final class DataColumn implements Column<DataRelation> {
       
   }
 
+
+  @Override
+  public void checkSanity() throws InsaneException {
+    
+    InsaneException.assertTrue(columnDataType != null);
+    InsaneException.assertTrue(defaultObjectCallback != null);
+
+    if (this.owner != null && this.owner.getPrimaryKey() != null) {
+      if (this.owner.getPrimaryKey().hasColumn(this))
+        InsaneException.assertTrue(!nullable);
+    }
+
+  }
+
+  void assertAccepts(Object object) {
+
+    if (object == null && !isNullable())
+      throw new DataConstraintException(String.format(
+          "column `%s' does not allow nulls",
+          toString()
+          ));
+    if (
+      object != null && 
+      !getColumnDataType().accepts(object.getClass())
+      )
+      throw new DataConstraintException(String.format(
+          "column `%s' of type `%s' is incompatable with the type of the " +
+          "provided object",
+          toString(),
+          getColumnDataType()
+          ));
+  }
 	
 }

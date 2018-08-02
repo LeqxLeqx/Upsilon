@@ -19,13 +19,15 @@
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 package upsilon.data;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
+import upsilon.sanity.InsaneException;
 import upsilon.tools.ArrayTools;
 
 
 public final class DataRow implements Row<DataRelation> {
+
+  /* TODO: ADD IN ROW HISTORY */
 
 	private DataRowState rowState;
 	private final List<Object> valuesArray;
@@ -52,7 +54,7 @@ public final class DataRow implements Row<DataRelation> {
     return owner;
   }
   @Override
-  public Object get(Column column) {
+  public Object get(Column<DataRelation> column) {
     return valuesArray.get(getIndex(column));
   }
   @Override
@@ -73,6 +75,24 @@ public final class DataRow implements Row<DataRelation> {
   public DataType getDataType(int index) {
     assertOwned();
     return owner.getColumn(index).getColumnDataType();
+  }
+  
+  public Object[] getPrimaryKeyValuesArray() {
+    
+    Object[] ret;
+    final DataColumn[] primaryKeyColumns;
+
+    assertOwned();
+    if (this.owner.getPrimaryKey() == null)
+      throw new IllegalArgumentException(
+          "this row's owner does not specify a primary key"
+          );
+
+    primaryKeyColumns = this.owner.getPrimaryKey().getColumns();
+    ret = new Object[primaryKeyColumns.length];
+
+    ArrayTools.fill(ret, k -> get(primaryKeyColumns[k]));
+    return ret;
   }
 
 
@@ -95,43 +115,60 @@ public final class DataRow implements Row<DataRelation> {
     return this;
   }
 
-  public DataRow set(DataColumn column, Object object) {
+  @Override
+  public DataRow set(Column<DataRelation> column, Object object) {
+
+    DataRow conflictingRow;
+    Object originalValue;
 
     assertOwned();
     assertNotDeleted();
     if (column == null)
       throw new IllegalArgumentException("column cannot be null");
-
-    if (object == null && !column.isNullable())
-      throw new DataConstraintException(String.format(
-          "column `%s' does not allow nulls",
-          column.toString()
-          ));
+    if (getOwner() != column.getOwner())
+      throw new IllegalArgumentException(
+          "column is not owned by the same relation as this row"
+          );
+    ((DataColumn) column).assertAccepts(object);
+    
     if (
-      object != null && 
-      !column.getColumnDataType().accepts(object.getClass())
-      )
-      throw new DataConstraintException(String.format(
-          "column `%s' of type `%s' is incompatable with the type of the " +
-          "provided object",
-          column.toString(),
-          column.getColumnDataType()
-          ));
+      this.owner.getPrimaryKey() != null &&
+      this.owner.getPrimaryKey().hasColumn((DataColumn) column) &&
+      this.rowState != DataRowState.PENDING
+      ) {
+      originalValue = this.valuesArray.get(column.getIndex());
+      this.valuesArray.set(column.getIndex(), object);
+      conflictingRow = this.owner
+              .getRowByPrimaryKey(getPrimaryKeyValuesArray());
 
-    this.valuesArray.set(column.getIndex(), object);
-    if (
-      this.owner.getRules().getActionsModifyRowState() &&
-      this.rowState == DataRowState.UNMODIFIED
-      )
+      if (conflictingRow != null && conflictingRow != this) {
+        this.valuesArray.set(column.getIndex(), originalValue);
+        throw new DataConstraintException(
+            "desired row update results in a primary key confict in the " +
+            "owning relation"
+            );
+      }
+      this.owner.notifyRowRequiresRehashing(
+          this, 
+          originalValue, 
+          (DataColumn) column
+          );
+    }
+    else
+      this.valuesArray.set(column.getIndex(), object);
+
+    if (this.rowState == DataRowState.UNMODIFIED)
       this.rowState = DataRowState.UPDATED;
 
     return this;
   }
+  @Override
   public DataRow set(int index, Object object) {
     assertOwned();
 
     return set(owner.getColumn(index), object);
   }
+  @Override
   public DataRow set(String name, Object object) {
     assertOwned();
 
@@ -142,108 +179,37 @@ public final class DataRow implements Row<DataRelation> {
     setRowState(DataRowState.DELETED);
   }
 
+  @Override
+  public void checkSanity() throws InsaneException {
+    
+    DataColumn column;
 
-  /* TYPED SETTERS */
+    if (rowState == DataRowState.NONE) {
+      InsaneException.assertTrue(this.owner == null);
+      return;
+    }
 
-  public DataRow setLong(DataColumn column, long value) {
-    return set(column, value);
-  }
-  public DataRow setLong(int index, long value) {
-    return set(index, value);
-  }
-  public DataRow setLong(String columnName, long value) {
-    return set(columnName, value);
-  }
-  
-  public DataRow setInt(DataColumn column, int value) {
-    return setLong(column, value);
-  }
-  public DataRow setInt(int index, int value) {
-    return setLong(index, value);
-  }
-  public DataRow setInt(String columnName, int value) {
-    return setLong(columnName, value);
-  }
-  
-  public DataRow setShort(DataColumn column, short value) {
-    return setLong(column, value);
-  }
-  public DataRow setShort(int index, short value) {
-    return setLong(index, value);
-  }
-  public DataRow setShort(String columnName, short value) {
-    return setLong(columnName, value);
-  }
-  
-  public DataRow setByte(DataColumn column, byte value) {
-    return setLong(column, value);
-  }
-  public DataRow setByte(int index, byte value) {
-    return setLong(index, value);
-  }
-  public DataRow setByte(String columnName, byte value) {
-    return setLong(columnName, value);
+    InsaneException.assertTrue(this.owner != null);
+    InsaneException.assertTrue(
+        this.valuesArray.size() == this.owner.getColumns().length
+        );
+
+    for (int k = 0; k < this.valuesArray.size(); k++) {
+
+      column = this.owner.getColumn(k);
+
+      if (this.valuesArray.get(k) == null)
+        InsaneException.assertTrue(column.isNullable());
+      else
+        InsaneException.assertTrue(
+            column.getColumnDataType().accepts(
+              this.valuesArray.get(k).getClass()
+              )
+            );
+    }
+
   }
 
-  public DataRow setDouble(DataColumn column, double value) {
-    return set(column, value);
-  }
-  public DataRow setDouble(int index, double value) {
-    return set(index, value);
-  }
-  public DataRow setDouble(String columnName, double value) {
-    return set(columnName, value);
-  }
-
-  public DataRow setFloat(DataColumn column, float value) {
-    return setDouble(column, value);
-  }
-  public DataRow setFloat(int index, float value) {
-    return setDouble(index, value);
-  }
-  public DataRow setFloat(String columnName, float value) {
-    return setDouble(columnName, value);
-  }
-
-  public DataRow setBoolean(DataColumn column, boolean value) {
-    return set(column, value);
-  }
-  public DataRow setBoolean(int index, boolean value) {
-    return set(index, value);
-  }
-  public DataRow setBoolean(String columnName, boolean value) {
-    return set(columnName, value);
-  }
-
-  public DataRow setString(DataColumn column, String value) {
-    return set(column, value);
-  }
-  public DataRow setString(int index, String value) {
-    return set(index, value);
-  }
-  public DataRow setString(String columnName, String value) {
-    return set(columnName, value);
-  }
-
-  public DataRow setDateTime(DataColumn column, LocalDateTime value) {
-    return set(column, value);
-  }
-  public DataRow setDateTime(int index, LocalDateTime value) {
-    return set(index, value);
-  }
-  public DataRow setDateTime(String columnName, LocalDateTime value) {
-    return set(columnName, value);
-  }
-
-  public DataRow setRaw(DataColumn column, byte[] value) {
-    return set(column, value); /* TODO: consider cloning */
-  }
-  public DataRow setRaw(int index, byte[] value) {
-    return set(index, value);
-  }
-  public DataRow setRaw(String columnName, byte[] value) {
-    return set(columnName, value);
-  }
 
   /* HELPERS */
 
@@ -263,8 +229,11 @@ public final class DataRow implements Row<DataRelation> {
     for (int k = 0; k < owner.getColumns().length; k++)
       this.valuesArray.add(null);
 
+    if (this.rowState == DataRowState.PENDING)
+      return;
+
     ArrayTools.forEach(owner.getColumns(), (k, column) -> {
-      set(column.getIndex(), column.getDefault());
+      this.valuesArray.set(column.getIndex(), column.getDefault());
     });
   }
 

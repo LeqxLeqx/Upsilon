@@ -25,9 +25,14 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import upsilon.sanity.InsaneException;
+import upsilon.tools.ArrayTools;
 import upsilon.types.Ptr;
 
 
@@ -35,26 +40,29 @@ public final class DataRelation implements Relation<DataRow,DataColumn> {
 
  
 	private String relationName;
+  private PrimaryKey primaryKey;
   private final DataRelationRules rules;
 	private final List<DataColumn> dataColumns;
   private final HashMap<String, DataColumn> dataColumnsMap;
-	private final List<DataRow> dataRows;
-
-	private ForEachRowContext forEachRowContext;
-	private ForEachColumnContext forEachColumnContext;
+	private final List<DataRow> dataRows, pendingDataRows;
+  private final HashMap<Integer, List<DataRow>> dataRowsMap;
 
 	public DataRelation() {
     this.rules = new DataRelationRules();
+    this.primaryKey = null;
 		this.relationName = null;
 		this.dataColumns = new ArrayList<>();
     this.dataColumnsMap = new HashMap<>();
 		this.dataRows = new ArrayList<>();
-		this.forEachRowContext = null;
-		this.forEachColumnContext = null;
+    this.pendingDataRows = new LinkedList<>();
+    this.dataRowsMap = new HashMap<>();
 
     this.rules.setOwner(this);
 	}
   
+  public PrimaryKey getPrimaryKey() {
+    return this.primaryKey; 
+  }
   public DataRelationRules getRules() {
     return this.rules;
   }
@@ -62,25 +70,14 @@ public final class DataRelation implements Relation<DataRow,DataColumn> {
   public String getRelationName() {
     return relationName;
   }
+  @Override
   public DataColumn[] getColumns() {
     return dataColumns.toArray(new DataColumn[dataColumns.size()]);
   }
+  @Override
   public DataRow[] getRows() {
     return dataRows.toArray(new DataRow[dataRows.size()]);
   } 
-
-  public DataRelation setRules(DataRelationRules rules) {
-    if (rules == null)
-      throw new IllegalArgumentException("rules cannot be null");
-
-    this.rules.copyFrom(rules);
-    return this;
-  }
-  public DataRelation setRelationName(String relationName) {
-    this.relationName = relationName;
-
-    return this;
-  }
   @Override
   public DataColumn getColumn(String name) {
     String convertedName;
@@ -146,29 +143,99 @@ public final class DataRelation implements Relation<DataRow,DataColumn> {
   
     return ret.toArray(new DataRow[ret.size()]);
   }
-	@Override
-	public int getColumnCount() {
-		return this.dataColumns.size();
-	}
-	@Override
-	public int getRowCount() {
-		return this.dataRows.size();
-	}
+  public DataRow getRowByPrimaryKey(Object... values) {
+    
+    int hash;
+    List<DataRow> rows;
+
+    if (ArrayTools.isNullOrContainsNull(values))
+      throw new IllegalArgumentException(
+          "primary key value list cannot contain null values"
+          );
+    if (this.primaryKey == null)
+      throw new IllegalStateException(
+          "this relation does not specify a primary key"
+          );
+
+    hash = this.primaryKey.getHashOfValueList(values);
+    rows = this.dataRowsMap.getOrDefault(hash, null);
+
+    if (rows == null)
+      return null;
+
+    for (DataRow row : rows) {
+      if (this.primaryKey.rowsAreEqual(row, values))
+        return row;
+    }
+
+    return null;
+  }
+  @Override
+  public int getColumnCount() {
+    return this.dataColumns.size();
+  }
+  @Override
+  public int getRowCount() {
+    return this.dataRows.size();
+  }
+  
+
+  public DataRelation setRules(DataRelationRules rules) {
+    if (rules == null)
+      throw new IllegalArgumentException("rules cannot be null");
+
+    this.rules.copyFrom(rules);
+    return this;
+  }
+  public DataRelation setRelationName(String relationName) {
+    this.relationName = relationName;
+
+    return this;
+  }
+  public DataRelation setPrimaryKey(PrimaryKey key) {
+    this.dataRowsMap.clear();
+    if (key == null) {
+      return this;
+    }
+    assertUnowned(key, "primary key");
+    assertPrimaryKeyIsUniqueOverRelation(key);
+
+    if (this.primaryKey != null)
+      this.primaryKey.setOwner(null);
+    this.primaryKey = key;
+    this.primaryKey.setOwner(this);
+    
+    recalculateRowMap();
+
+    return this;
+  }
+
 
 
   public void addRow(DataRow row) {
     if (row == null)
       throw new IllegalArgumentException("cannot add null row");
-    assertUnowned(row, "row");
-		
-		if (this.forEachRowContext == null)
-			this.dataRows.add(row);
-		else
-			this.forEachRowContext.add.add(row);
+    if (row.getRowState() == DataRowState.PENDING) {
+      addRowFromPending(row);
+      return;
+    }
 
-		row.setOwner(this);
-		if (rules.getActionsModifyRowState())
-			row.setRowState(DataRowState.ADDED);
+    assertUnowned(row, "row"); 
+    this.dataRows.add(row);
+    row.setOwner(this);
+    addSingleRowToDataRowsMap(row);
+
+    row.setRowState(DataRowState.ADDED);
+  }
+  public void addPendingRow(DataRow row) {
+    if (row == null)
+      throw new IllegalArgumentException("cannot add null row");
+    assertUnowned(row, "row");
+
+    this.pendingDataRows.add(row);
+    row.setRowState(DataRowState.PENDING);
+    row.setOwner(this);
+
   }
   public void addColumn(DataColumn column) {
 
@@ -176,18 +243,14 @@ public final class DataRelation implements Relation<DataRow,DataColumn> {
 
     if (column == null)
       throw new IllegalArgumentException("cannot add null column");
+    if (!this.pendingDataRows.isEmpty())
+      throw new IllegalArgumentException(
+          "cannot add column while this relation holds pending data rows"
+          );
     assertUnowned(column, "column");
     
-		if (this.forEachColumnContext == null) {
-			column.setIndexImp(this.dataColumns.size());
-			this.dataColumns.add(column);
-		}
-		else {
-			column.setIndexImp(
-					this.dataColumns.size() + this.forEachColumnContext.add.size()
-					);
-			this.forEachColumnContext.add.add(column);
-		}
+    column.setIndexImp(this.dataColumns.size());
+    this.dataColumns.add(column);
 
     column.setOwner(this);
 
@@ -198,134 +261,215 @@ public final class DataRelation implements Relation<DataRow,DataColumn> {
   }
 
   public void removeRow(DataRow row) {
+
     if (row == null)
       throw new IllegalArgumentException("cannot remove null row");
     assertOwned(row, "row");
-		
-		if (this.forEachRowContext == null)
-			this.dataRows.remove(row);
-		else
-			this.forEachRowContext.remove.add(row);
+    if (row.getRowState() == DataRowState.PENDING)
+      throw new IllegalArgumentException("cannot remove row in pending state");
 
+    if (!this.dataRows.remove(row))
+      throw new IllegalStateException("failed to remove row");
+
+    attemptRemoveRowFromDataRowsMap(row);
 		row.setOwner(null);
-		if (rules.getActionsModifyRowState())
-			row.setRowState(DataRowState.NONE);
+    row.setRowState(DataRowState.NONE);
   }
+  
+  
   public void removeColumn(DataColumn column) {
 		if (column == null)
 			throw new IllegalArgumentException("cannot remove null column");
+    if (!this.pendingDataRows.isEmpty())
+      throw new IllegalArgumentException(
+          "cannot remove column while this relation holds pending data rows"
+          );
 		assertOwned(column, "column");
 
-		if (this.forEachColumnContext == null)
-			this.dataColumns.remove(column);
-		else
-			this.forEachColumnContext.remove.add(column);
+    this.dataColumns.remove(column);
+    if (column.getColumnName() != null)
+      this.dataColumnsMap.remove(column.getColumnName());
 
 		column.setOwner(null);
   }
 
 
-
+  @Override
   public void forEachRow(Consumer<DataRow> consumer) {
-		try {
-			startForEachRowContext();
-			this.dataRows.forEach(consumer);
-		} finally {
-			endForEachRowContext();
-		}
+    this.dataRows.forEach(consumer);
   }
   public void forEachRowPair(BiConsumer<DataRow, DataRow> biConsumer) {
-		try {
-			startForEachRowContext();
 
-			for (int k = 0; k < this.dataRows.size() - 1; k++) {
-				for (int i = k + 1; i < this.dataRows.size(); i++) {
-					biConsumer.accept(this.dataRows.get(k), this.dataRows.get(i));
-				}
-			}
-
-		} finally {
-			endForEachRowContext();
-		}
+    for (int k = 0; k < this.dataRows.size() - 1; k++) {
+      for (int i = k + 1; i < this.dataRows.size(); i++) {
+        biConsumer.accept(this.dataRows.get(k), this.dataRows.get(i));
+      }
+    }
   }
+  @Override
   public void forEachColumn(Consumer<DataColumn> consumer) {
-		try {
-			startForEachColumnContext();
-			this.dataColumns.forEach(consumer);
-		} finally {
-			endForEachColumnContext();
-		}
+		this.dataColumns.forEach(consumer);
   }
   public void forEachColumnPair(BiConsumer<DataColumn, DataColumn> biConsumer) {
-		try {
-			startForEachColumnContext();
 
-			for (int k = 0; k < this.dataColumns.size() - 1; k++) {
-				for (int i = k + 1; i < this.dataColumns.size(); i++) {
-					biConsumer.accept(this.dataColumns.get(k), this.dataColumns.get(i));
-				}
-			}
-
-		} finally {
-			endForEachColumnContext();
-		}
+    for (int k = 0; k < this.dataColumns.size() - 1; k++) {
+      for (int i = k + 1; i < this.dataColumns.size(); i++) {
+        biConsumer.accept(this.dataColumns.get(k), this.dataColumns.get(i));
+      }
+    }
   }
   public boolean forAnyRow(Predicate<DataRow> predicate) {
 		boolean ret;
 
-		try {
-			startForEachRowContext();
+    if (predicate == null)
+      throw new IllegalArgumentException("predicate cannot be null");
 
-			if (predicate == null)
-				throw new IllegalArgumentException("predicate cannot be null");
-
-			ret = this.dataRows.stream().anyMatch(predicate);
-		} finally {
-			endForEachRowContext();
-		}
+    ret = this.dataRows.stream().anyMatch(predicate);
 
 		return ret;
   }
   public boolean forAllRows(Predicate<DataRow> predicate) {
 		boolean ret;
 
-		try {
-			startForEachRowContext();
+    if (predicate == null)
+      throw new IllegalArgumentException("predicate cannot be null");
 
-			if (predicate == null)
-				throw new IllegalArgumentException("predicate cannot be null");
-
-			ret = this.dataRows.stream().allMatch(predicate);
-		} finally {
-			endForEachRowContext();
-		}
+    ret = this.dataRows.stream().allMatch(predicate);
 
 		return ret;
   }
 	
   @Override
-	public Relation select(Predicate<DataRow> predicate) {
+	public Relation<? extends Row,? extends Column> select(
+      Predicate<DataRow> predicate
+      ) {
 		return ReferenceRelation.createFromSelect(this, this, predicate);
   }
 
   @Override
-  public Relation sort(Comparator<DataRow> comparator) {
+  public Relation<? extends Row,? extends Column> sort(
+      Comparator<DataRow> comparator
+      ) {
 		return ReferenceRelation.createFromSort(this, this, comparator);
   }
 
   @Override
-  public Relation project(Predicate<DataColumn> predicate) {
+  public Relation<? extends Row,? extends Column> project(
+      Predicate<DataColumn> predicate
+      ) {
 		return ReferenceRelation.createFromProject(this, this, predicate);
   }
 
+  @Override
+  public Relation<? extends Row,? extends Column> rename(
+      Function<DataColumn,String> function
+      ) {
+    return ReferenceRelation.createFromRename(this, this, function);
+  }
 
-  /* CONVENIENCE METHODS */
+  @Override
+  public Relation<? extends Row,? extends Column> rename(
+      String... names
+      ) {
+    return ReferenceRelation.createFromRename(this, this, names);
+  }
+
+  @Override
+  public <R extends Row,C extends Column> 
+  Relation<? extends Row,? extends Column> product(Relation<R,C> other) {
+    return ReferenceRelation.createFromProduct(this, this, other);
+  }
+
+  @Override
+  public <R extends Row, C extends Column> 
+  Relation<? extends Row, ? extends Column> join(
+      Relation<R, C> other, 
+      BiPredicate<DataRow, R> predicate
+      ) {
+    return ReferenceRelation.createFromJoin(this, this, other, predicate);
+  }
+
+  @Override
+  public <R extends Row, C extends Column>
+  Relation<? extends Row, ? extends Column> naturalJoin(Relation<R, C> other) {
+    return ReferenceRelation.createFromNaturalJoin(this, this, other);
+  }
+
+  @Override
+  public <R extends Row, C extends Column> 
+  Relation<? extends Row,? extends Column> equiJoin(
+      Relation<R,C> relation, String... names
+      ) {
+    return ReferenceRelation.createFromEquiJoin(this, this, relation, names);
+  }
+
+  @Override
+  public <R extends Row, C extends Column> 
+  Relation<? extends Row,? extends Column> semiJoin(Relation<R,C> relation) {
+    return ReferenceRelation.createFromSemiJoin(this, this, relation);
+  }
+
+  @Override
+  public <R extends Row, C extends Column> 
+  Relation<? extends Row,? extends Column> antiJoin(Relation<R,C> relation) {
+    return ReferenceRelation.createFromAntiJoin(this, this, relation);
+  }
 
   public DataRow createRow() {
     DataRow row = new DataRow();
-    addRow(row);
+    addPendingRow(row);
     return row;
   }
+
+  private void clearPendingDataRows() {
+    this.pendingDataRows.forEach(r -> r.setOwner(null));
+    this.pendingDataRows.clear();
+  }
+  
+
+  @Override
+  public void checkSanity() throws InsaneException {
+
+    DataColumn column;
+    DataRow row;
+    String columnName;
+
+    for (int k = 0; k < dataColumns.size(); k++) {
+      column = this.dataColumns.get(k);
+      InsaneException.assertTrue(column.getOwner() == this);
+      InsaneException.assertTrue(column.getIndex() == k);
+      columnName = column.getColumnName();
+      if (columnName != null) {
+        columnName = convertColumnName(columnName);
+        InsaneException.assertTrue(this.dataColumnsMap.containsKey(columnName));
+        InsaneException.assertTrue(
+            this.dataColumnsMap.get(columnName) == column
+            );
+      }
+
+      column.checkSanity();
+    }
+    for (int k = 0; k < dataRows.size(); k++) {
+      row = this.dataRows.get(k);
+      InsaneException.assertTrue(row.getOwner() == this);
+      if (this.primaryKey != null) {
+        InsaneException.assertTrue(
+            getRowByPrimaryKey(row.getPrimaryKeyValuesArray()) == row
+            );
+      }
+      row.checkSanity();
+    }
+    for (int k = 0; k < pendingDataRows.size(); k++) {
+      row = this.pendingDataRows.get(k);
+      InsaneException.assertTrue(row.getOwner() == this);
+      InsaneException.assertTrue(row.getRowState() == DataRowState.PENDING);
+      row.checkSanity();
+    }
+
+  }
+ 
+
+  /* CONVENIENCE METHODS */
 
   public void normalizeChanges() {
     forEachRow(row -> {
@@ -398,9 +542,61 @@ public final class DataRelation implements Relation<DataRow,DataColumn> {
       row.recolumn(old, newIndex);
     });
   }
+  void notifyPrimaryKeyChanged() 
+          throws InvalidChildModificationException {
+   
+    try {
+      assertPrimaryKeyIsUniqueOverRelation(this.primaryKey);
+    } catch (DataConstraintException e) {
+      throw new InvalidChildModificationException(e.getMessage());
+    }
+
+    recalculateRowMap();
+  }
+  void notifyRowRequiresRehashing(
+      DataRow row, 
+      Object original, 
+      DataColumn change
+      ) {
+
+    int oldHash, newHash;
+    
+    if (this.primaryKey == null)
+      throw new IllegalStateException("primary key is null");
+
+    newHash = this.primaryKey.getHashOfRow(row);
+    oldHash = newHash ^ original.hashCode() ^ row.get(change).hashCode();
+
+    if (!this.dataRowsMap.get(oldHash).remove(row))
+      throw new IllegalStateException("failed to remove row form map");
+    
+    addSingleRowToDataRowsMap(row);
+  }
 
 
   /* HELPERS */
+
+  private void addRowFromPending(final DataRow row) {
+    if (row.getOwner() != this)
+      throw new IllegalArgumentException(
+          "pendng row addition is not owned by this data relation"
+          );
+    
+    this.dataColumns.forEach(column -> {
+      column.assertAccepts(row.get(column));
+    });
+
+    if (this.primaryKey != null)
+      addSingleRowToDataRowsMap(row);
+    if (!this.pendingDataRows.remove(row)) {
+      attemptRemoveRowFromDataRowsMap(row);
+      throw new IllegalStateException(
+          "pending row could not be removed from list of pending rows"
+          );
+    }
+    this.dataRows.add(row);
+    row.setRowState(DataRowState.ADDED);
+  }
 
   private String convertColumnName(String name) {
     if (rules.getIgnoreCase())
@@ -449,76 +645,68 @@ public final class DataRelation implements Relation<DataRow,DataColumn> {
 				);
 	}
 
-	private void startForEachRowContext() {
-		if (forEachRowContext == null)
-			forEachRowContext = new ForEachRowContext();
+  private void assertPrimaryKeyIsUniqueOverRelation(final PrimaryKey key) {
+    HashMap<Integer,List<DataRow>> map = new HashMap<>();
 
-		forEachRowContext.start();
-	}
-	private void endForEachRowContext() {
-		if (forEachRowContext == null)
-			throw new IllegalStateException("unexpected for-each row context state");
+    /* addSingleRowToListMap should throw exception if primary key 
+     * is not unique over this relation
+     */
+    this.dataRows.forEach(row -> addSingleRowToListMap(key, map, row));
+  }
 
-		forEachRowContext.complete();
-		if (forEachRowContext.shouldRelease())
-			forEachRowContext = null;
-	}
+  private void recalculateRowMap() {
+    this.dataRowsMap.clear();
+    this.dataRows.forEach(this::addSingleRowToDataRowsMap);
+  }
 
-	private void startForEachColumnContext() {
-		if (forEachColumnContext == null)
-			forEachColumnContext = new ForEachColumnContext();
+  private void addSingleRowToListMap(
+      final PrimaryKey key, 
+      Map<Integer,List<DataRow>> map,
+      final DataRow row
+      ) {
 
-		forEachColumnContext.start();
-	}
-	private void endForEachColumnContext() {
-		if (forEachColumnContext == null)
-			throw new IllegalStateException(
-					"unexpected for-each column context state"
-					);
+    int hash;
+    List<DataRow> rowList;
 
-		forEachColumnContext.complete();
-		if (forEachColumnContext.shouldRelease())
-			forEachColumnContext = null;
-	}
+    hash = key.getHashOfRow(row);
+    rowList = map.getOrDefault(hash, null);
+    if (rowList == null) {
+      rowList = new LinkedList<>();
+      map.put(hash, rowList);
+    }
+    else if (rowList.stream().anyMatch(r -> key.rowsAreEqual(r, row))) {
+        throw new DataConstraintException(
+            "primary key is not unique over this relation"
+            );
+    }
 
-	private abstract class ForEachContext<T> {
 
-		final List<T> remove, add;
-		int depth;
+    rowList.add(row);
+  }
+  
+  private void addSingleRowToDataRowsMap(DataRow row) {
 
-		ForEachContext() {
-			this.remove = new LinkedList<>();
-			this.add = new LinkedList<>();
-			this.depth = 0;
-		}
+    if (this.primaryKey == null)
+      throw new RuntimeException("primary key is null");
 
-		abstract List<T> effected();
+    addSingleRowToListMap(this.primaryKey, this.dataRowsMap, row);
+  }
+  
+  private void attemptRemoveRowFromDataRowsMap(DataRow row) {
+    
+    int hash;
+    List<DataRow> rowList;
 
-		void start() {
-			this.depth++;
-		}
-		void complete() {
-			this.depth--;
-			if (depth == 0) {
-				this.remove.forEach(effected()::remove);
-				this.add.forEach(effected()::add);
-			}
-		}
-		boolean shouldRelease() {
-			return depth == 0;
-		}
-	}
+    if (this.primaryKey != null) {
+      hash = this.primaryKey.getHashOfRow(row);
+      rowList = this.dataRowsMap.get(hash);
+      if (rowList != null) {
+        rowList.remove(row);
+        if (rowList.isEmpty())
+          this.dataRowsMap.remove(hash);
+      }
+    }
+  }
 
-	private class ForEachRowContext extends ForEachContext<DataRow> {
-		@Override List<DataRow> effected() {
-			return DataRelation.this.dataRows;
-		}
-	}
-
-	private class ForEachColumnContext extends ForEachContext<DataColumn> {
-		@Override List<DataColumn> effected() {
-			return DataRelation.this.dataColumns;
-		}
-	}
 	
 }

@@ -17,59 +17,21 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-package upsilon.data;
+package upsilon.sanity;
 
-public final class DataRelationRules {
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Predicate;
+
+public class InsaneException extends Exception {
+
+  public static void assertTrue(boolean value) throws InsaneException {
+    if (!value)
+      throw new InsaneException("sanity check failed");
+  }
   
-  private DataRelation
-    owner;
-  private boolean 
-    ignoreCase,
-		autoNullToDefault;
-
-  public DataRelationRules() {
-    this.owner = null;
-    this.ignoreCase = true;
-		this.autoNullToDefault = false;
-  }
-
-  public boolean getIgnoreCase() {
-    return ignoreCase;
-  }
-	public boolean getAutoNullToDefault() {
-		return autoNullToDefault;
-	}
-
-
-  DataRelationRules setOwner(DataRelation owner) {
-    this.owner = owner;
-    return this;
-  }
-  public DataRelationRules setIgnoreCase(boolean value) {
-    boolean original = this.ignoreCase;
-
-    this.ignoreCase = value;
-    if (this.owner != null && original != value) {
-      try {
-        this.owner.notifyRulesIgnoreCaseChanged();
-      } catch (InvalidChildModificationException e) {
-        this.ignoreCase = original;
-        throw new IllegalStateException(e.getMessage());
-      }
-    }
-    return this;
-  }
-	public DataRelationRules setAutoNullToDefault(boolean value) {
-		this.autoNullToDefault = value;
-		return this;
-	}
-
-
-  void copyFrom(DataRelationRules rules) {
-    
-    setIgnoreCase(rules.ignoreCase);
-    setAutoNullToDefault(rules.autoNullToDefault);
-
+  public InsaneException(String message) {
+    super(message);
   }
   
 }

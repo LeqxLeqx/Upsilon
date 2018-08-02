@@ -19,6 +19,7 @@
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 package upsilon.data;
 
+import upsilon.sanity.InsaneException;
 import upsilon.tools.ArrayTools;
 
 public class ReferenceRow implements Row<ReferenceRelation> {
@@ -26,6 +27,15 @@ public class ReferenceRow implements Row<ReferenceRelation> {
 	static ReferenceRow ofOneReference(Row reference, int size) {
 		return new ReferenceRow(ArrayTools.fill(new Row[size], reference));
 	}
+  static ReferenceRow ofTwoReferences(
+      Row reference1, final int size1,
+      Row reference2, int size2
+      ) {
+    Row[] references = new Row[size1 + size2];
+
+    ArrayTools.fill(references, k -> k < size1 ? reference1 : reference2);
+    return new ReferenceRow(references);
+  }
 
 
   private ReferenceRelation owner;
@@ -34,7 +44,6 @@ public class ReferenceRow implements Row<ReferenceRelation> {
   ReferenceRow(
       Row[] references
       ) {
-    this.owner = owner;
     this.references = references;
   }
   
@@ -56,16 +65,35 @@ public class ReferenceRow implements Row<ReferenceRelation> {
 
     return getFromReference((ReferenceColumn) column);
   }
-
   @Override
   public Object get(int index) {
     return getFromReference(index);
   }
-
   @Override
   public Object get(String columnName) {
     return getFromReference(owner.getColumn(columnName));
   }
+  
+  @Override
+  public ReferenceRow set(Column<ReferenceRelation> column, Object object) {
+    if (column == null)
+      throw new IllegalArgumentException("column cannot be null");
+    verifyColumn(column);
+
+    setToReference((ReferenceColumn)column, object);
+    return this;
+  }
+  @Override
+  public ReferenceRow set(int index, Object object) {
+    setToReference(index, object);
+    return this;
+  }
+  @Override
+  public ReferenceRow set(String columnName, Object object) {
+    setToReference(owner.getColumn(columnName), object);
+    return this;
+  }
+
 
   @Override
   public DataType getDataType(String columnName) {
@@ -77,14 +105,28 @@ public class ReferenceRow implements Row<ReferenceRelation> {
     return owner.getColumn(index).getColumnDataType();
   }
 
+  @Override
+  public void checkSanity() throws InsaneException {
+    InsaneException.assertTrue(this.owner != null);
+    InsaneException.assertTrue(!ArrayTools.isNullOrContainsNull(references));
+  }
+
 
   
   private Object getFromReference(int index) {
     return getFromReference(owner.getColumn(index));
   }
   private Object getFromReference(ReferenceColumn column) {
-    Row referenceRow = this.references[column.getIndex()];
-    return referenceRow.get(column.getReference()); 
+    Row referencedRow = this.references[column.getIndex()];
+    return referencedRow.get(column.getReference()); 
+  }
+
+  private void setToReference(int index, Object object) {
+    setToReference(owner.getColumn(index), object);
+  }
+  private void setToReference(ReferenceColumn column, Object object) {
+    Row referencedRow = this.references[column.getIndex()];
+    referencedRow.set(column.getReference(), object);
   }
 
 	ReferenceRow setOwner(ReferenceRelation owner) {

@@ -19,12 +19,17 @@
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 package upsilon.data;
 
-public interface Column<OwningType> extends Ownable<OwningType> {
+import upsilon.sanity.Sane;
+
+public interface Column<OwningType> extends Ownable<OwningType>, Sane {
 
   ColumnType getColumnType();
 
   String getColumnName();
   DataType getColumnDataType();
   int getIndex();
+
+  boolean isNullable();
+  boolean isReadOnly();
   
 }

@@ -36,15 +36,13 @@ class RelationIterator<RowType extends Row, ColumnType extends Column>
 		this.rows = new LinkedList<>();
 		this.iterator = null;
 	}
-
+  
 	private void init() {
 		if (this.iterator == null) {
 			this.rows = Arrays.asList(relation.getRows());
 			this.iterator = rows.iterator();
 		}
 	}
-
-	/* TODO : IMPLEMENT WITH forEachContext ENGAGING PROPERLY */
 
 	@Override
 	public boolean hasNext() {
