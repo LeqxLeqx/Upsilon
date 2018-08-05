@@ -19,11 +19,121 @@
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 package upsilon.data;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.BiPredicate;
 
 class DataTools { private DataTools() {}
   
+  static Object reObject(Object object, DataType type) {
+    if (object == null)
+      return object;
+
+    switch (type) {
+
+      case NONE:
+      case OBJECT:
+        return object;
+
+      case INTEGER:
+        return reObjectInteger(object);
+      case REAL:
+        return reObjectReal(object);
+      case LOGICAL:
+        return reObjectLogical(object);
+
+      case STRING:
+        return reObjectString(object);
+      case DATETIME:
+        return reObjectDateTime(object);
+      case RAW:
+        return object; /* TODO */
+
+      default:
+        return object;
+    }
+  }
+
+  private static Object reObjectInteger(Object object) {
+
+    Class<?> type = object.getClass();
+
+		if (type == Byte.class)
+			return (long) ((Byte) object).byteValue();
+    else if (type == Short.class)
+			return (long) ((Short) object).shortValue();
+    else if (type == Integer.class)
+			return (long) ((Integer) object).intValue();
+    else
+      return object;
+  }
+
+  private static Object reObjectReal(Object object) {
+
+    Class<?> type = object.getClass();
+
+    if (type == Byte.class)
+      return (double) ((Byte) object).byteValue();
+    else if (type == Short.class)
+      return (double) ((Short) object).shortValue();
+    else if (type == Integer.class)
+      return (double) ((Integer) object).intValue();
+    else if (type == Long.class)
+      return (double) ((Long) object).longValue();
+    else if (type == Float.class)
+      return (double) ((Float) object).floatValue();
+    else
+      return object;
+  }
+
+  private static Object reObjectLogical(Object object) {
+
+    Class<?> type = object.getClass();
+
+		if (type == Byte.class)
+			return (Byte) object != 0;
+    else if (type == Short.class)
+			return (Short) object != 0;
+    else if (type == Integer.class)
+			return (Integer) object != 0;
+    else if (type == Long.class)
+      return (Long) object != 0;
+    else
+      return object;
+  }
+
+  private static Object reObjectString(Object object) {
+    return object.toString();
+  }
+
+  private static Object reObjectDateTime(Object object) {
+    
+    Class<?> type = object.getClass();
+
+		if (type == String.class) {
+      try {
+        return LocalDateTime.parse(
+            (String) object, 
+            DateTimeFormatter.ofPattern("yyyy-MM-dd kk:mm:ss")
+            );
+      } catch (DateTimeParseException e) {
+        return object;
+      }
+    }
+    else if (type == Date.class)
+      return toLocalDateTime((Date) object);
+    else if (type == Timestamp.class)
+      return toLocalDateTime((Timestamp) object);
+    else
+      return object;
+  }
 
   static <T> boolean containsDuplicateReference(List<T> list) {
     for (int k = 0; k < list.size() - 1; k++) {
@@ -64,5 +174,24 @@ class DataTools { private DataTools() {}
     
     return false;
   }
+
+  private static LocalDateTime toLocalDateTime(Date date) {
+		long millis;
+		Instant instant;
+
+		millis = date.getTime();
+		instant = Instant.ofEpochMilli(millis);
+
+		return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
+  }
 	
+  private static LocalDateTime toLocalDateTime(Timestamp timestamp) {
+		long millis;
+		Instant instant;
+
+		millis = timestamp.getTime();
+		instant = Instant.ofEpochMilli(millis);
+
+		return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
+	}
 }

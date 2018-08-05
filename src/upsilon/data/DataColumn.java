@@ -222,9 +222,10 @@ public final class DataColumn implements Column<DataRelation> {
       )
       throw new DataConstraintException(String.format(
           "column `%s' of type `%s' is incompatable with the type of the " +
-          "provided object",
+          "provided object `%s'",
           toString(),
-          getColumnDataType()
+          getColumnDataType(),
+          object.getClass().getName()
           ));
   }
 	

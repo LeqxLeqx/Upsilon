@@ -69,8 +69,6 @@ public class DefaultDataWriter extends DataWriter {
 
     sb.append(")");
     
-    System.out.println(sb.toString()); /* TODO: REMOVE */
-
     statement.addBatch(sb.toString());
 
     return true;
@@ -124,8 +122,6 @@ public class DefaultDataWriter extends DataWriter {
       first.value = false;
     });
 
-    System.out.println(sb.toString()); /* TODO: REMOVE */
-
     statement.addBatch(sb.toString());
 
     return true;
@@ -164,8 +160,6 @@ public class DefaultDataWriter extends DataWriter {
           ));
       first.value = false;
     });
-
-    System.out.println(sb.toString()); /* TODO: REMOVE */
 
     statement.addBatch(sb.toString());
 

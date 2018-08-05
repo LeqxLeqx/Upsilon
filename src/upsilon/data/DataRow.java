@@ -119,7 +119,8 @@ public final class DataRow implements Row<DataRelation> {
   public DataRow set(Column<DataRelation> column, Object object) {
 
     DataRow conflictingRow;
-    Object originalValue;
+    Object originalValue, adjustedObject;
+    boolean valueSet = false;
 
     assertOwned();
     assertNotDeleted();
@@ -129,34 +130,43 @@ public final class DataRow implements Row<DataRelation> {
       throw new IllegalArgumentException(
           "column is not owned by the same relation as this row"
           );
-    ((DataColumn) column).assertAccepts(object);
+
+    adjustedObject = DataTools.reObject(object, column.getColumnDataType());
+    ((DataColumn) column).assertAccepts(adjustedObject);
+    if (this.rowState != DataRowState.PENDING) {
     
-    if (
-      this.owner.getPrimaryKey() != null &&
-      this.owner.getPrimaryKey().hasColumn((DataColumn) column) &&
-      this.rowState != DataRowState.PENDING
-      ) {
-      originalValue = this.valuesArray.get(column.getIndex());
-      this.valuesArray.set(column.getIndex(), object);
-      conflictingRow = this.owner
-              .getRowByPrimaryKey(getPrimaryKeyValuesArray());
-
-      if (conflictingRow != null && conflictingRow != this) {
-        this.valuesArray.set(column.getIndex(), originalValue);
+      if (((DataColumn)column).isReadOnly())
         throw new DataConstraintException(
-            "desired row update results in a primary key confict in the " +
-            "owning relation"
+            "specified column is read only"
             );
-      }
-      this.owner.notifyRowRequiresRehashing(
-          this, 
-          originalValue, 
-          (DataColumn) column
-          );
-    }
-    else
-      this.valuesArray.set(column.getIndex(), object);
+      if (
+        this.owner.getPrimaryKey() != null &&
+        this.owner.getPrimaryKey().hasColumn((DataColumn) column)
+        ) {
+        originalValue = this.valuesArray.get(column.getIndex());
+        this.valuesArray.set(column.getIndex(), adjustedObject);
+        conflictingRow = this.owner
+                .getRowByPrimaryKey(getPrimaryKeyValuesArray());
 
+        if (conflictingRow != null && conflictingRow != this) {
+          this.valuesArray.set(column.getIndex(), originalValue);
+          throw new DataConstraintException(
+              "desired row update results in a primary key confict in the " +
+              "owning relation"
+              );
+        }
+        this.owner.notifyRowRequiresRehashing(
+            this, 
+            originalValue, 
+            (DataColumn) column
+            );
+        valueSet = true;
+      }
+    }
+
+    if (!valueSet)
+      this.valuesArray.set(column.getIndex(), adjustedObject);
+    
     if (this.rowState == DataRowState.UNMODIFIED)
       this.rowState = DataRowState.UPDATED;
 

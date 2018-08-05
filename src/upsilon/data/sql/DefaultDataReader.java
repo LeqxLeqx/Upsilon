@@ -53,7 +53,7 @@ public class DefaultDataReader extends DataReader {
 		while (resultSet.next()) {
 			row = relation.createRow();
 			for (int k = 0; k < relation.getColumnCount(); k++) {
-				row.set(k, upsizeObject(resultSet.getObject(k + 1)));
+				row.set(k, resultSet.getObject(k + 1));
 			}
       relation.addRow(row);
 		}

@@ -59,38 +59,6 @@ public abstract class DataReader {
       DatabaseMetaData metaData
       ) throws SQLException;
   
-  protected LocalDateTime toLocalDateTime(Timestamp timestamp) {
-		long millis;
-		Instant instant;
-
-		millis = timestamp.getTime();
-		instant = Instant.ofEpochMilli(millis);
-
-		return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
-	}
-  protected Object upsizeObject(Object object) {
-
-		Class type;
-
-		if (object == null)
-			return null;
-		type = object.getClass();
-
-		if (type == Byte.class)
-			return (long) ((Byte) object).byteValue();
-		if (type == Short.class)
-			return (long) ((Short) object).shortValue();
-		if (type == Integer.class)
-			return (long) ((Integer) object).intValue();
-		
-		if (type == Float.class)
-			return (double) ((Float) object).floatValue();
-		if (type == Timestamp.class)
-			return toLocalDateTime((Timestamp) object);
-
-		return object;
-	}
-
 	protected static DataType sqlTypeIntToDataType(int type) {
 		
 		DataType ret;
