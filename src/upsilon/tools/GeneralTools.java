@@ -18,20 +18,27 @@
  *  If not, see <http://www.gnu.org/licenses/>.                            *
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+package upsilon.tools;
 
-package upsilon.types;
+public class GeneralTools { private GeneralTools() {}
 
-public class Ptr <T> {
+  public static <T> T nullCoalesce(T... values) {
 
-  public T value;
+    if (values == null)
+      throw new IllegalArgumentException(
+          "values array cannot be null"
+          );
+    if (values.length == 0)
+      throw new IllegalArgumentException(
+          "values array must have a positive length"
+          );
 
-  public Ptr() {
-    this(null);
+    for (int k = 0; k < values.length - 1; k++) {
+      if (values[k] != null)
+        return values[k];
+    }
+
+    return values[values.length - 1];
   }
-  public Ptr(T value) {
-    this.value = value;
-  }
-
   
-  	
 }

@@ -24,16 +24,16 @@ package upsilon;
 public /*static*/ class Upsilon { private Upsilon() {}
   
   public static final int
-    MAJOR_VERSION = 0,
-    MINOR_VERSION = 3,
-    RELEASE_VERSION = 0;
+    RELEASE_VERSION = 0,
+    MAJOR_VERSION = 3,
+    MINOR_VERSION = 1;
 
   public static String getVersion() {
     return String.format(
         "%d.%d.%d",
+        RELEASE_VERSION,
         MAJOR_VERSION,
-        MINOR_VERSION,
-        RELEASE_VERSION
+        MINOR_VERSION
         );
   }
   

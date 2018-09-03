@@ -36,6 +36,53 @@ public abstract class Tuple {
 
 		return getImp(index);
 	}
+  
+  @Override
+  public int hashCode() {
+
+    int ret = 0;
+    Object object;
+
+    for (int k = 0; k < size(); k++) {
+      
+      object = get(k);
+      if (object != null)
+        ret ^= object.hashCode();
+
+    }
+
+    return ret;
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other instanceof Tuple)
+      return equals((Tuple) other);
+    else
+      return false;
+  }
+
+  private boolean equals(Tuple other) {
+
+    Object thisObject, otherObject;
+
+    if (size() != other.size())
+      return false;
+
+    for (int k = 0; k < size(); k++) {
+      thisObject = get(k);
+      otherObject = get(k);
+
+      if (thisObject == null && otherObject == null)
+        continue;
+      if (thisObject == null || otherObject == null)
+        return false;
+      if (!thisObject.equals(otherObject))
+        return false;
+    }
+
+    return true;
+  }
 	
 	
 }

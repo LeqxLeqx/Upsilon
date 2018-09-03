@@ -18,20 +18,25 @@
  *  If not, see <http://www.gnu.org/licenses/>.                            *
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 package upsilon.types;
 
-public class Ptr <T> {
+import java.util.function.Function;
 
-  public T value;
-
-  public Ptr() {
-    this(null);
-  }
-  public Ptr(T value) {
-    this.value = value;
-  }
-
+public class UncheckedException extends RuntimeException {
   
-  	
+  public static final long serialVersionUID = 0xBB545EAF;
+  
+  public static void raise(Exception exception) {
+    throw new UncheckedException(exception);
+  }
+
+  public UncheckedException(Exception exception) {
+    super(exception);
+  }
+  
+  public <T extends Exception> void rethrow(Function<Throwable, T> supplier) 
+      throws T {
+    throw supplier.apply(getCause());
+  }
+  
 }
