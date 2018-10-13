@@ -25,6 +25,7 @@ package upsilon.tools;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 
 public /*static*/ class StringTools { private StringTools() {  }
@@ -51,14 +52,36 @@ public /*static*/ class StringTools { private StringTools() {  }
     return true;
 	}
 
+  public static boolean containsASCIIControlCharacter(String string) {
+    return contains(string, c -> c < 0x20);
+  }
+  public static boolean containsNonASCIICharacter(String string) {
+    return contains(string, c -> c > 0x7F);
+  }
+
+  public static boolean contains(String string, Predicate<Character> predicate){
+    for (int k = 0; k < string.length(); k++) {
+      if (predicate.test(string.charAt(k)))
+        return true;
+    }
+    return false;
+  }
+
+
   public static String simplifyWhitespace(String string) {
     return simplifyWhitespace(string, ' ');
   }
   
   public static String simplifyWhitespace(String string, char replaceChar) {
 
-    boolean lastWasWhitespace = false;
-    StringBuilder sb = new StringBuilder();
+    boolean lastWasWhitespace;
+    StringBuilder sb;
+    
+    if (string == null)
+      throw new IllegalArgumentException("string cannot be null");
+    
+    lastWasWhitespace = false;
+    sb = new StringBuilder();
 
     for (char c : string.toCharArray()) {
       if (Character.isWhitespace(c))
@@ -72,6 +95,16 @@ public /*static*/ class StringTools { private StringTools() {  }
 
     return sb.toString();
   }
+
+  public static String newString(Character[] array) {
+
+
+    if (ArrayTools.isNullOrContainsNull(array))
+      throw new IllegalArgumentException("array cannot be or contain null");
+    
+    return new String(ArrayTools.toPrimitiveArray(array));
+  }
+
 
 	public static String repeat(int count, char c) {
 		if (count < 0)

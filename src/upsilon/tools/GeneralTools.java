@@ -22,6 +22,7 @@ package upsilon.tools;
 
 public class GeneralTools { private GeneralTools() {}
 
+  @SuppressWarnings("unchecked")
   public static <T> T nullCoalesce(T... values) {
 
     if (values == null)

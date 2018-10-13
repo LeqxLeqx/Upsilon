@@ -18,23 +18,55 @@
  *  If not, see <http://www.gnu.org/licenses/>.                            *
  *                                                                         *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+package upsilon.io;
 
-package upsilon;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import upsilon.tools.ArrayTools;
 
-public /*static*/ class Upsilon { private Upsilon() {}
-  
-  public static final int
-    RELEASE_VERSION = 0,
-    MAJOR_VERSION = 3,
-    MINOR_VERSION = 2;
+public class SplitOutputStream extends OutputStream {
 
-  public static String getVersion() {
-    return String.format(
-        "%d.%d.%d",
-        RELEASE_VERSION,
-        MAJOR_VERSION,
-        MINOR_VERSION
-        );
+  public static OutputStream create(OutputStream... components) {
+
+    SplitOutputStream ret;
+
+    if (components == null)
+      throw new IllegalArgumentException("array cannot be null");
+    if (ArrayTools.containsNull(components))
+      throw new IllegalArgumentException("array cannot contain nulls");
+
+    ret = new SplitOutputStream();
+    Collections.addAll(ret.components, components);
+
+    return ret;
   }
+  
+  private List<OutputStream> components;
+  
+  private SplitOutputStream() {
+    super();
+    
+    this.components = new LinkedList<>();
+  }
+
+  @Override
+  public void write(int i) throws IOException {
+    for (OutputStream stream : components) {
+      stream.write(i);
+    }
+  }
+  
+  @Override
+  public void close() throws IOException {
+    super.close();
+
+    for (OutputStream stream : components) {
+      stream.close();
+    }
+  }
+
   
 }
