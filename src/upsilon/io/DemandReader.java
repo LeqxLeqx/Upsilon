@@ -125,6 +125,7 @@ public class DemandReader implements AutoCloseable {
       BiPredicate<String,String> equalityPredicate
       ) throws IOException {
     
+    String matched;
     StringBuilder sb;
     LinkedList<Character> buffer;
     int maxStringLength;
@@ -160,6 +161,17 @@ public class DemandReader implements AutoCloseable {
             );
         }));
 
+    matched = Arrays.stream(strings).filter(string -> {
+        return equalityPredicate.test(
+          StringTools
+            .newString(buffer.stream().toArray(Character[]::new))
+            .substring(maxStringLength - string.length()),
+          string
+          );
+        }).findFirst().get();
+
+    for (int k = matched.length(); k < maxStringLength; k++)
+      sb.append(buffer.removeFirst());
     while (!buffer.isEmpty())
       putBack(buffer.removeLast());
 
