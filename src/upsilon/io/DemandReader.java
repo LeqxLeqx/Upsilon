@@ -141,7 +141,7 @@ public class DemandReader implements AutoCloseable {
     sb = new StringBuilder();
     maxStringLength = Arrays
         .stream(strings)
-        .max((a, b) -> b.length() - a.length())
+        .max((a, b) -> a.length() - b.length())
         .get()
         .length();
 

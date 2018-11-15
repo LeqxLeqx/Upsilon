@@ -26,7 +26,7 @@ public /*static*/ class Upsilon { private Upsilon() {}
   public static final int
     RELEASE_VERSION = 0,
     MAJOR_VERSION = 3,
-    MINOR_VERSION = 2;
+    MINOR_VERSION = 3;
 
   public static String getVersion() {
     return String.format(
